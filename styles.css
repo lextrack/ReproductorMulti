@@ -23,6 +23,37 @@ body {
     min-height: 100vh;
 }
 
+.github-footer {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+.github-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+    text-decoration: none;
+    color: #333;
+}
+
+.github-link:hover {
+    transform: translateY(-3px) scale(1.1);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    color: var(--primary-color);
+}
+
+.github-link i {
+    font-size: 1.5rem;
+}
+
 .controls-panel {
     background: white;
     border-radius: 15px;
@@ -163,10 +194,12 @@ body {
     align-items: center;
     gap: 0.2rem;
     animation: fadeIn 0.3s ease;
+    color: white !important;
 }
 
 .status-badge i {
     font-size: 0.8rem;
+    color: white !important;
 }
 
 .bg-purple {
@@ -299,13 +332,13 @@ body {
     align-items: center;
     gap: 0.6rem;
     padding: 0.5rem 0.75rem;
-    background: #f8f9fa;
+    background: #bbb7b775;
     border-radius: 6px;
 }
 
 .volume-label {
     font-size: 0.8rem;
-    color: #666;
+    color: #414040;
     font-weight: 500;
     min-width: auto;
 }

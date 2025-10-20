@@ -167,12 +167,12 @@ class AudioManager {
                         <i class="bi bi-trash-fill"></i>
                     </button>
                     <button class="btn btn-purple btn-small btn-reset-volume" data-id="${item.id}">
-                        <i class="bi bi-arrow-counterclockwise"></i>
+                        <span>Reset volumen</span>
                     </button>
                     <div class="loop-toggle" id="loop-container-${item.id}">
                         <input type="checkbox" class="form-check-input" id="loop-${item.id}" data-id="${item.id}">
                         <label for="loop-${item.id}">
-                            <i class="bi bi-arrow-repeat"></i>
+                            <span>Loop</span>
                         </label>
                     </div>
                 </div>
