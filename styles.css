@@ -118,10 +118,7 @@ body {
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
     transition: all 0.3s ease;
     border-left: 4px solid transparent;
-}
-
-.audio-item .card-body {
-    padding: 0.75rem 1rem;
+    scroll-margin-top: 20px;
 }
 
 .audio-item:hover {
@@ -152,6 +149,24 @@ body {
 .audio-item.error {
     border-left-color: var(--danger-color);
     background: #fef2f2;
+}
+
+.audio-item.highlight {
+    animation: highlightPulse 1.5s ease;
+}
+
+@keyframes highlightPulse {
+    0%, 100% {
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+    }
+    50% {
+        box-shadow: 0 0 20px 5px var(--primary-color);
+        transform: scale(1.02);
+    }
+}
+
+.audio-item .card-body {
+    padding: 0.75rem 1rem;
 }
 
 .audio-header {
@@ -417,6 +432,193 @@ input[type="file"]:hover {
     border-color: var(--primary-dark);
 }
 
+.filter-section {
+    margin-top: 1.5rem;
+}
+
+.filter-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.filter-btn {
+    padding: 0.4rem 0.9rem;
+    font-size: 0.85rem;
+    border-radius: 20px;
+    border: 2px solid transparent;
+    background: #f1f5f9;
+    color: #64748b;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.filter-btn:hover {
+    background: #e2e8f0;
+    transform: translateY(-1px);
+}
+
+.filter-btn.active {
+    color: white;
+    border-color: currentColor;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.filter-btn.active.filter-all {
+    background: var(--primary-color);
+}
+
+.filter-btn.active.filter-playing {
+    background: var(--success-color);
+}
+
+.filter-btn.active.filter-paused {
+    background: var(--warning-color);
+}
+
+.filter-btn.active.filter-stopped {
+    background: #6b7280;
+}
+
+.filter-btn.active.filter-loop {
+    background: var(--purple-color);
+}
+
+.filter-btn i {
+    font-size: 0.9rem;
+}
+
+.history-panel {
+    background: white;
+    border-radius: 15px;
+    padding: 1.5rem;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+    position: sticky;
+    top: 20px;
+    max-height: calc(100vh - 140px);
+    display: flex;
+    flex-direction: column;
+}
+
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.history-header h6 {
+    font-weight: 600;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.history-header i {
+    color: var(--primary-color);
+}
+
+#historyCounter {
+    font-size: 0.8rem;
+    padding: 0.3rem 0.6rem;
+}
+
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex: 1;
+    padding-right: 0.5rem;
+}
+
+.history-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.history-list::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 3px;
+}
+
+.history-list::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 3px;
+}
+
+.history-list::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark);
+}
+
+.history-item {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 0.75rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-left: 3px solid var(--success-color);
+}
+
+.history-item:hover {
+    transform: translateX(-3px);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+}
+
+.history-item-name {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #333;
+    margin-bottom: 0.3rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.history-item-time {
+    font-size: 0.75rem;
+    color: #666;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.history-item-time i {
+    color: var(--success-color);
+}
+
+.history-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    color: #999;
+    text-align: center;
+    height: 100%;
+    min-height: 200px;
+}
+
+.history-empty i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.3;
+}
+
+.history-empty p {
+    margin: 0;
+    font-size: 0.9rem;
+}
+
 @media (max-width: 768px) {
     .controls-panel .card-body {
         padding: 1rem;
@@ -444,5 +646,9 @@ input[type="file"]:hover {
     
     .audio-name {
         font-size: 0.9em;
+    }
+    
+    .filter-buttons {
+        justify-content: flex-start;
     }
 }

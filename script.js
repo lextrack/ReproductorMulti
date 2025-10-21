@@ -8,6 +8,7 @@ class AudioManager {
         this.audioId = 0;
         this.audioContext = null;
         this.playingCount = 0;
+        this.currentFilter = 'all';
         this.initAudioContext();
         this.setupEventListeners();
         this.setupKeyboardShortcuts();
@@ -25,11 +26,15 @@ class AudioManager {
 
     setupEventListeners() {
         document.getElementById('audioFile').addEventListener('change', (e) => this.handleFileInput(e));
-        document.getElementById('searchInput').addEventListener('input', () => this.filterAudios());
+        document.getElementById('searchInput').addEventListener('input', () => this.applyFilters());
         document.getElementById('playAllBtn').addEventListener('click', () => this.playAll());
         document.getElementById('pauseAllBtn').addEventListener('click', () => this.pauseAll());
         document.getElementById('stopAllBtn').addEventListener('click', () => this.stopAll());
         document.getElementById('resetAllVolumes').addEventListener('click', () => this.resetAllVolumes());
+        
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => this.handleFilterClick(e));
+        });
     }
 
     setupKeyboardShortcuts() {
@@ -41,6 +46,60 @@ class AudioManager {
                 this.togglePlayPauseAll();
             }
         });
+    }
+
+    handleFilterClick(e) {
+        const btn = e.currentTarget;
+        const filter = btn.dataset.filter;
+        
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        this.currentFilter = filter;
+        this.applyFilters();
+    }
+
+    applyFilters() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        let visibleCount = 0;
+        
+        this.audioElements.forEach(item => {
+            const audioItem = document.getElementById(`audio-item-${item.id}`);
+            if (audioItem) {
+                const matchesSearch = item.name.toLowerCase().includes(searchTerm);
+                const matchesFilter = this.checkFilter(item);
+                
+                if (matchesSearch && matchesFilter) {
+                    audioItem.style.display = 'block';
+                    visibleCount++;
+                } else {
+                    audioItem.style.display = 'none';
+                }
+            }
+        });
+        
+        if (visibleCount === 0 && this.audioElements.length > 0) {
+            this.showEmptyState('No se encontraron audios con los filtros aplicados');
+        } else if (this.audioElements.length > 0) {
+            this.hideEmptyState();
+        }
+    }
+
+    checkFilter(item) {
+        switch(this.currentFilter) {
+            case 'all':
+                return true;
+            case 'playing':
+                return item.isPlaying;
+            case 'paused':
+                return !item.isPlaying && item.audio.currentTime > 0 && !item.audio.ended;
+            case 'stopped':
+                return !item.isPlaying && (item.audio.currentTime === 0 || item.audio.ended);
+            case 'loop':
+                return item.audio.loop;
+            default:
+                return true;
+        }
     }
 
     handleFileInput(e) {
@@ -104,18 +163,24 @@ class AudioManager {
             item.isPlaying = true;
             this.updatePlayingState(item.id, true);
             this.updatePlayingCounter();
+            this.updateHistory();
+            this.applyFilters();
         });
         
         item.audio.addEventListener('pause', () => {
             item.isPlaying = false;
             this.updatePlayingState(item.id, false);
             this.updatePlayingCounter();
+            this.updateHistory();
+            this.applyFilters();
         });
         
         item.audio.addEventListener('ended', () => {
             item.isPlaying = false;
             this.updatePlayingState(item.id, false);
             this.updatePlayingCounter();
+            this.updateHistory();
+            this.applyFilters();
         });
         
         item.audio.addEventListener('error', (e) => {
@@ -124,6 +189,9 @@ class AudioManager {
 
         item.audio.addEventListener('timeupdate', () => {
             this.updateProgress(item.id);
+            if (item.isPlaying) {
+                this.updateHistoryTime(item.id);
+            }
         });
 
         item.audio.addEventListener('loadedmetadata', () => {
@@ -382,6 +450,8 @@ class AudioManager {
             }
             
             this.updatePlayingCounter();
+            this.updateHistory();
+            this.applyFilters();
         }
     }
 
@@ -405,6 +475,8 @@ class AudioManager {
             if (item.isPlaying) {
                 this.updatePlayingState(id, true);
             }
+            
+            this.applyFilters();
         }
     }
 
@@ -498,32 +570,65 @@ class AudioManager {
         }
     }
 
-    filterAudios() {
-        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-        let visibleCount = 0;
+    updateHistory() {
+        const historyList = document.getElementById('historyList');
+        const historyCounter = document.getElementById('historyCounter');
+        const playingAudios = this.audioElements.filter(item => item.isPlaying);
         
-        this.audioElements.forEach(item => {
-            const audioItem = document.getElementById(`audio-item-${item.id}`);
-            if (audioItem) {
-                if (item.name.toLowerCase().includes(searchTerm)) {
-                    audioItem.style.display = 'block';
-                    visibleCount++;
-                } else {
-                    audioItem.style.display = 'none';
-                }
-            }
-        });
+        historyCounter.textContent = playingAudios.length;
         
-        if (visibleCount === 0 && searchTerm !== '') {
-            this.showEmptyState('No se encontraron audios con ese nombre');
-        } else if (this.audioElements.length > 0) {
-            this.hideEmptyState();
+        if (playingAudios.length === 0) {
+            historyList.innerHTML = `
+                <div class="history-empty">
+                    <i class="bi bi-music-note-beamed"></i>
+                    <p>Ningún audio reproduciéndose</p>
+                </div>
+            `;
+        } else {
+            historyList.innerHTML = '';
+            playingAudios.forEach(item => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                historyItem.id = `history-item-${item.id}`;
+                historyItem.innerHTML = `
+                    <div class="history-item-name">${this.escapeHtml(item.name)}</div>
+                    <div class="history-item-time">
+                        <i class="bi bi-clock"></i>
+                        <span id="history-time-${item.id}">${this.formatTime(item.audio.currentTime)}</span>
+                    </div>
+                `;
+                
+                historyItem.addEventListener('click', () => this.scrollToAudio(item.id));
+                historyList.appendChild(historyItem);
+            });
+        }
+    }
+
+    updateHistoryTime(id) {
+        const item = this.audioElements.find(el => el.id === id);
+        if (!item || !item.isPlaying) return;
+        
+        const historyTime = document.getElementById(`history-time-${id}`);
+        if (historyTime) {
+            historyTime.textContent = this.formatTime(item.audio.currentTime);
+        }
+    }
+
+    scrollToAudio(id) {
+        const audioItem = document.getElementById(`audio-item-${id}`);
+        if (audioItem) {
+            audioItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            audioItem.classList.add('highlight');
+            setTimeout(() => {
+                audioItem.classList.remove('highlight');
+            }, 1500);
         }
     }
 
     showEmptyState(message = 'No hay audios cargados') {
         const list = document.getElementById('audioList');
-        const emptyState = list.querySelector('.empty-state');
+        let emptyState = list.querySelector('.empty-state');
         
         if (!emptyState) {
             const div = document.createElement('div');
@@ -535,7 +640,10 @@ class AudioManager {
             `;
             list.appendChild(div);
         } else {
-            emptyState.querySelector('h4').textContent = message;
+            const h4 = emptyState.querySelector('h4');
+            if (h4) {
+                h4.textContent = message;
+            }
             emptyState.style.display = 'block';
         }
     }
