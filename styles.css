@@ -19,7 +19,7 @@
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    background: linear-gradient(135deg, #333e50 0%, #1a202c 100%);
     min-height: 100vh;
 }
 
@@ -45,7 +45,7 @@ body {
 }
 
 .github-link:hover {
-    transform: translateY(-3px) scale(1.1);
+    transform: translateY(-3px) scale(1.05);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
     color: var(--primary-color);
 }
@@ -284,7 +284,7 @@ body {
     align-items: center;
     gap: 0.4rem;
     padding: 0.35rem 0.65rem;
-    background: #f8f9fa;
+    background: #bbb7b773;
     border-radius: 6px;
     cursor: pointer;
     transition: all 0.2s;
@@ -303,7 +303,7 @@ body {
 .loop-toggle label {
     cursor: pointer;
     user-select: none;
-    color: #666;
+    color: #464545;
     margin: 0;
     font-size: 0.85rem;
     display: flex;
@@ -347,7 +347,7 @@ body {
     align-items: center;
     gap: 0.6rem;
     padding: 0.5rem 0.75rem;
-    background: #bbb7b775;
+    background: #bbb7b773;
     border-radius: 6px;
 }
 
@@ -414,7 +414,7 @@ input[type="file"] {
 input[type="file"]::file-selector-button {
     padding: 0.5rem 1rem;
     border: none;
-    background-color: var(--primary-color);
+    background-color: rgba(148, 147, 172, 0.527);
     color: rgb(0, 0, 0);
     border-radius: 4px;
     cursor: pointer;
@@ -569,7 +569,7 @@ input[type="file"]:hover {
 }
 
 .history-item:hover {
-    transform: translateX(-3px);
+    transform: translateX(3px);
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
     background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
 }

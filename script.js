@@ -314,7 +314,7 @@ class AudioManager {
                 } else {
                     item.classList.add('playing');
                     statusBadge.className = 'status-badge bg-success';
-                    statusBadge.innerHTML = '<i class="bi bi-play-fill"></i> Play';
+                    statusBadge.innerHTML = '<i class="bi bi-play-fill"></i> Reproduciendo';
                 }
                 playBtn?.classList.add('active');
                 pauseBtn?.classList.remove('active');
@@ -325,7 +325,7 @@ class AudioManager {
                     statusBadge.innerHTML = '<i class="bi bi-pause-fill"></i> Pausa';
                 } else {
                     statusBadge.className = 'status-badge bg-secondary';
-                    statusBadge.innerHTML = '<i class="bi bi-stop-fill"></i> Stop';
+                    statusBadge.innerHTML = '<i class="bi bi-stop-fill"></i> Detenido';
                 }
                 playBtn?.classList.remove('active');
                 pauseBtn?.classList.add('active');
@@ -617,7 +617,14 @@ class AudioManager {
     scrollToAudio(id) {
         const audioItem = document.getElementById(`audio-item-${id}`);
         if (audioItem) {
-            audioItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            const rect = audioItem.getBoundingClientRect();
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            const targetPosition = rect.top + scrollTop - (window.innerHeight / 2) + (rect.height / 2);
+            
+            window.scrollTo({
+                top: targetPosition,
+                behavior: 'smooth'
+            });
             
             audioItem.classList.add('highlight');
             setTimeout(() => {
