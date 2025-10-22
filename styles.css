@@ -9,6 +9,8 @@
     --danger-dark: #dc2626;
     --purple-color: #8b5cf6;
     --purple-dark: #7c3aed;
+    --info-color: #06b6d4;
+    --info-dark: #0891b2;
 }
 
 * {
@@ -21,6 +23,17 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(135deg, #333e50 0%, #1a202c 100%);
     min-height: 100vh;
+}
+
+.btn-info {
+    background-color: var(--info-color);
+    color: white;
+    border: none;
+}
+
+.btn-info:hover {
+    background-color: var(--info-dark);
+    color: white;
 }
 
 .github-footer {
@@ -52,6 +65,26 @@ body {
 
 .github-link i {
     font-size: 1.5rem;
+}
+
+.backup-status {
+    padding: 0.5rem 0.75rem;
+    background: #d1f4e0;
+    border-left: 3px solid var(--success-color);
+    border-radius: 6px;
+}
+
+.backup-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.backup-info i {
+    font-size: 1rem;
 }
 
 .controls-panel {
@@ -106,13 +139,6 @@ body {
     box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.3);
 }
 
-.group-management {
-    padding: 1rem;
-    background: #f8f9fa;
-    border-radius: 8px;
-    border-left: 4px solid var(--primary-color);
-}
-
 .btn-mute.active {
     background-color: #6b7280;
     color: white;
@@ -122,6 +148,20 @@ body {
 .btn-group-control[data-action="mute"].active {
     background-color: #6b7280;
     color: white;
+}
+
+.group-management {
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid var(--primary-color);
+}
+
+.backup-section {
+    padding: 1rem;
+    background: #fff3cd;
+    border-radius: 8px;
+    border-left: 4px solid var(--warning-color);
 }
 
 .groups-container {

@@ -11,6 +11,8 @@ class AudioManager {
         this.currentFilter = 'all';
         this.groups = [];
         this.groupId = 0;
+        this.backupLoaded = false;
+        this.backupInfo = null;
         this.initAudioContext();
         this.setupEventListeners();
         this.setupKeyboardShortcuts();
@@ -37,6 +39,12 @@ class AudioManager {
         document.getElementById('newGroupName').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.createGroup();
         });
+        document.getElementById('exportBackupBtn').addEventListener('click', () => this.exportBackup());
+        document.getElementById('importBackupBtn').addEventListener('click', () => {
+            document.getElementById('backupFile').click();
+        });
+        document.getElementById('backupFile').addEventListener('change', (e) => this.importBackup(e));
+        document.getElementById('resetFactoryBtn').addEventListener('click', () => this.resetFactory());
         
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.addEventListener('click', (e) => this.handleFilterClick(e));
@@ -54,25 +62,22 @@ class AudioManager {
         });
     }
 
-    loadGroupsFromStorage() {
-        const saved = localStorage.getItem('audioGroups');
-        if (saved) {
-            try {
-                const data = JSON.parse(saved);
-                this.groups = data.groups || [];
-                this.groupId = data.nextId || 0;
-                this.renderAllGroups();
-            } catch (e) {
-                console.error('Error loading groups:', e);
-            }
-        }
+    generateSoftColor() {
+        const hue = Math.floor(Math.random() * 360);
+        const saturation = 65 + Math.floor(Math.random() * 20);
+        const lightness = 85 + Math.floor(Math.random() * 10);
+        return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
     }
 
-    saveGroupsToStorage() {
-        localStorage.setItem('audioGroups', JSON.stringify({
-            groups: this.groups,
-            nextId: this.groupId
-        }));
+    generateDarkerShade(color) {
+        const match = color.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+        if (match) {
+            const hue = match[1];
+            const saturation = match[2];
+            const lightness = Math.max(parseInt(match[3]) - 15, 50);
+            return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+        }
+        return color;
     }
 
     createGroup() {
@@ -97,42 +102,6 @@ class AudioManager {
         this.updateAllGroupSelectors();
         input.value = '';
         this.showAlert(`Grupo "${name}" creado`, 'success');
-    }
-
-    updateAllGroupSelectors() {
-        this.audioElements.forEach(item => {
-            let selector = document.querySelector(`.group-selector[data-id="${item.id}"]`);
-            
-            if (!selector) {
-                const audioControls = document.querySelector(`#audio-item-${item.id} .audio-controls`);
-                if (audioControls) {
-                    const selectorDiv = document.createElement('div');
-                    selectorDiv.className = 'audio-group-selector';
-                    selectorDiv.innerHTML = `
-                        <i class="bi bi-folder"></i>
-                        <select class="group-selector" data-id="${item.id}">
-                            <option value="">Sin grupo</option>
-                        </select>
-                    `;
-                    audioControls.appendChild(selectorDiv);
-                    selector = selectorDiv.querySelector('.group-selector');
-                    selector.addEventListener('change', (e) => this.changeAudioGroup(item.id, e.target.value));
-                }
-            }
-            
-            if (selector) {
-                const currentValue = selector.value;
-                const groupOptions = this.groups.map(g => 
-                    `<option value="${g.id}" ${item.groupId == g.id ? 'selected' : ''}>${this.escapeHtml(g.name)}</option>`
-                ).join('');
-                
-                selector.innerHTML = `
-                    <option value="">Sin grupo</option>
-                    ${groupOptions}
-                `;
-                selector.value = currentValue;
-            }
-        });
     }
 
     deleteGroup(groupId) {
@@ -324,64 +293,38 @@ class AudioManager {
         }
     }
 
-    toggleMute(id) {
-        const item = this.audioElements.find(el => el.id === id);
-        if (!item) return;
-
-        const btn = document.querySelector(`.btn-mute[data-id="${id}"]`);
-        
-        item.isMuted = !item.isMuted;
-        
-        if (item.isMuted) {
-            btn.classList.add('active');
-            btn.innerHTML = '<i class="bi bi-volume-mute-fill"></i>';
-        } else {
-            btn.classList.remove('active');
-            btn.innerHTML = '<i class="bi bi-volume-mute"></i>';
-        }
-
-        this.applyMute();
-        this.updateHistory();
-    }
-
-    toggleGroupMute(groupId) {
-        const audios = this.audioElements.filter(a => a.groupId === groupId);
-        const groupBtn = document.querySelector(`.group-header[data-group-id="${groupId}"] .btn-group-control[data-action="mute"]`);
-        
-        const allMuted = audios.every(a => a.isMuted);
-        
-        audios.forEach(a => {
-            a.isMuted = !allMuted;
-            const btn = document.querySelector(`.btn-mute[data-id="${a.id}"]`);
-            if (btn) {
-                if (a.isMuted) {
-                    btn.classList.add('active');
-                    btn.innerHTML = '<i class="bi bi-volume-mute-fill"></i>';
-                } else {
-                    btn.classList.remove('active');
-                    btn.innerHTML = '<i class="bi bi-volume-mute"></i>';
+    updateAllGroupSelectors() {
+        this.audioElements.forEach(item => {
+            let selector = document.querySelector(`.group-selector[data-id="${item.id}"]`);
+            
+            if (!selector) {
+                const audioControls = document.querySelector(`#audio-item-${item.id} .audio-controls`);
+                if (audioControls) {
+                    const selectorDiv = document.createElement('div');
+                    selectorDiv.className = 'audio-group-selector';
+                    selectorDiv.innerHTML = `
+                        <i class="bi bi-folder"></i>
+                        <select class="group-selector" data-id="${item.id}">
+                            <option value="">Sin grupo</option>
+                        </select>
+                    `;
+                    audioControls.appendChild(selectorDiv);
+                    selector = selectorDiv.querySelector('.group-selector');
+                    selector.addEventListener('change', (e) => this.changeAudioGroup(item.id, e.target.value));
                 }
             }
-        });
-
-        if (!allMuted) {
-            groupBtn?.classList.add('active');
-        } else {
-            groupBtn?.classList.remove('active');
-        }
-
-        this.applyMute();
-        this.updateHistory();
-    }
-
-    applyMute() {
-        this.audioElements.forEach(item => {
-            if (item.isMuted) {
-                item.gainNode.gain.value = 0;
-            } else {
-                const slider = document.querySelector(`.volume-slider[data-id="${item.id}"]`);
-                const volume = slider ? slider.value : DEFAULT_VOLUME;
-                item.gainNode.gain.value = volume / 100;
+            
+            if (selector) {
+                const currentValue = selector.value;
+                const groupOptions = this.groups.map(g => 
+                    `<option value="${g.id}" ${item.groupId == g.id ? 'selected' : ''}>${this.escapeHtml(g.name)}</option>`
+                ).join('');
+                
+                selector.innerHTML = `
+                    <option value="">Sin grupo</option>
+                    ${groupOptions}
+                `;
+                selector.value = currentValue;
             }
         });
     }
@@ -490,6 +433,11 @@ class AudioManager {
         }
         
         return true;
+    }
+
+    getAudioKey(name) {
+        const extension = name.split('.').pop().toLowerCase();
+        return `${name}_${extension}`;
     }
 
     addAudio(file, groupId = null) {
@@ -767,24 +715,6 @@ class AudioManager {
         return div.innerHTML;
     }
 
-    generateSoftColor() {
-    const hue = Math.floor(Math.random() * 360);
-    const saturation = 65 + Math.floor(Math.random() * 20);
-    const lightness = 85 + Math.floor(Math.random() * 10);
-    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-    }
-
-    generateDarkerShade(color) {
-        const match = color.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
-        if (match) {
-            const hue = match[1];
-            const saturation = match[2];
-            const lightness = Math.max(parseInt(match[3]) - 15, 50);
-            return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-        }
-        return color;
-    }
-
     updatePlayingState(id, isPlaying) {
         const item = document.getElementById(`audio-item-${id}`);
         const statusBadge = document.getElementById(`status-${id}`);
@@ -840,7 +770,7 @@ class AudioManager {
             if (count > 0) {
                 counter.className = 'badge bg-success ms-2';
             } else {
-                counter.className = 'badge bg-primary ms-2';
+                counter.className = 'badge bg-secondary ms-2';
             }
         }
     }
@@ -959,6 +889,68 @@ class AudioManager {
             this.updateHistory();
             this.applyFilters();
         }
+    }
+
+    toggleMute(id) {
+        const item = this.audioElements.find(el => el.id === id);
+        if (!item) return;
+
+        const btn = document.querySelector(`.btn-mute[data-id="${id}"]`);
+        
+        item.isMuted = !item.isMuted;
+        
+        if (item.isMuted) {
+            btn.classList.add('active');
+            btn.innerHTML = '<i class="bi bi-volume-mute-fill"></i>';
+        } else {
+            btn.classList.remove('active');
+            btn.innerHTML = '<i class="bi bi-volume-mute"></i>';
+        }
+
+        this.applyMute();
+        this.updateHistory();
+    }
+
+    toggleGroupMute(groupId) {
+        const audios = this.audioElements.filter(a => a.groupId === groupId);
+        const groupBtn = document.querySelector(`.group-header[data-group-id="${groupId}"] .btn-group-control[data-action="mute"]`);
+        
+        const allMuted = audios.every(a => a.isMuted);
+        
+        audios.forEach(a => {
+            a.isMuted = !allMuted;
+            const btn = document.querySelector(`.btn-mute[data-id="${a.id}"]`);
+            if (btn) {
+                if (a.isMuted) {
+                    btn.classList.add('active');
+                    btn.innerHTML = '<i class="bi bi-volume-mute-fill"></i>';
+                } else {
+                    btn.classList.remove('active');
+                    btn.innerHTML = '<i class="bi bi-volume-mute"></i>';
+                }
+            }
+        });
+
+        if (!allMuted) {
+            groupBtn?.classList.add('active');
+        } else {
+            groupBtn?.classList.remove('active');
+        }
+
+        this.applyMute();
+        this.updateHistory();
+    }
+
+    applyMute() {
+        this.audioElements.forEach(item => {
+            if (item.isMuted) {
+                item.gainNode.gain.value = 0;
+            } else {
+                const slider = document.querySelector(`.volume-slider[data-id="${item.id}"]`);
+                const volume = slider ? slider.value : DEFAULT_VOLUME;
+                item.gainNode.gain.value = volume / 100;
+            }
+        });
     }
 
     toggleLoop(id, checked) {
@@ -1145,6 +1137,269 @@ class AudioManager {
         }
     }
 
+    exportBackup() {
+        const backup = {
+            version: '1.0',
+            timestamp: new Date().toISOString(),
+            groups: this.groups.map(g => ({
+                name: g.name,
+                color: g.color
+            })),
+            audioSettings: this.audioElements.map(item => ({
+                key: this.getAudioKey(item.name),
+                name: item.name,
+                groupName: item.groupId !== null && item.groupId !== undefined ? 
+                    this.groups.find(g => g.id === item.groupId)?.name : null,
+                volume: parseInt(document.querySelector(`.volume-slider[data-id="${item.id}"]`)?.value || DEFAULT_VOLUME),
+                isMuted: item.isMuted,
+                isLoop: item.audio.loop
+            }))
+        };
+
+        const dataStr = JSON.stringify(backup, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `audio-backup-${new Date().toISOString().split('T')[0]}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+
+        this.showAlert('Respaldo exportado correctamente', 'success');
+    }
+
+    importBackup(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (this.audioElements.length === 0) {
+            this.showAlert('Debes cargar archivos de audio primero antes de importar un respaldo', 'warning');
+            e.target.value = '';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const backup = JSON.parse(event.target.result);
+                
+                if (!backup.version || !backup.groups || !backup.audioSettings) {
+                    throw new Error('Formato de respaldo inválido');
+                }
+
+                while (this.groups.length > 0) {
+                    const group = this.groups[0];
+                    const tagElement = document.querySelector(`[data-group-id="${group.id}"]`);
+                    if (tagElement) tagElement.remove();
+                    
+                    const sectionElement = document.getElementById(`group-section-${group.id}`);
+                    if (sectionElement) sectionElement.remove();
+                    
+                    this.groups.shift();
+                }
+                
+                this.groupId = 0;
+
+                backup.groups.forEach(g => {
+                    const group = {
+                        id: this.groupId++,
+                        name: g.name,
+                        color: g.color,
+                        collapsed: false
+                    };
+                    this.groups.push(group);
+                    this.renderGroupTag(group);
+                    this.renderGroupSection(group);
+                });
+
+                let configuredCount = 0;
+                this.audioElements.forEach(item => {
+                    const key = this.getAudioKey(item.name);
+                    const settings = backup.audioSettings.find(s => s.key === key);
+                    
+                    if (settings) {
+                        configuredCount++;
+                        const oldGroupId = item.groupId;
+                        
+                        if (settings.groupName) {
+                            const group = this.groups.find(g => g.name === settings.groupName);
+                            item.groupId = group ? group.id : null;
+                        } else {
+                            item.groupId = null;
+                        }
+
+                        const audioElement = document.getElementById(`audio-item-${item.id}`);
+                        if (audioElement) {
+                            audioElement.remove();
+                        }
+                        
+                        this.renderAudioItem(item);
+
+                        setTimeout(() => {
+                            const slider = document.querySelector(`.volume-slider[data-id="${item.id}"]`);
+                            if (slider) {
+                                slider.value = settings.volume;
+                                item.gainNode.gain.value = settings.volume / 100;
+                                const display = document.getElementById(`vol-display-${item.id}`);
+                                if (display) {
+                                    display.textContent = `${settings.volume}%`;
+                                    if (settings.volume > 100) {
+                                        display.classList.add('boosted');
+                                    } else {
+                                        display.classList.remove('boosted');
+                                    }
+                                }
+                            }
+
+                            const muteBtn = document.querySelector(`.btn-mute[data-id="${item.id}"]`);
+                            if (settings.isMuted && !item.isMuted) {
+                                item.isMuted = true;
+                                if (muteBtn) {
+                                    muteBtn.classList.add('active');
+                                    muteBtn.innerHTML = '<i class="bi bi-volume-mute-fill"></i>';
+                                }
+                            } else if (!settings.isMuted && item.isMuted) {
+                                item.isMuted = false;
+                                if (muteBtn) {
+                                    muteBtn.classList.remove('active');
+                                    muteBtn.innerHTML = '<i class="bi bi-volume-mute"></i>';
+                                }
+                            }
+
+                            const loopCheckbox = document.getElementById(`loop-${item.id}`);
+                            const loopContainer = document.getElementById(`loop-container-${item.id}`);
+                            if (loopCheckbox) {
+                                loopCheckbox.checked = settings.isLoop;
+                                item.audio.loop = settings.isLoop;
+                                
+                                if (settings.isLoop) {
+                                    loopContainer.style.background = 'rgba(139, 92, 246, 0.1)';
+                                    loopContainer.style.borderLeft = '3px solid var(--purple-color)';
+                                } else {
+                                    loopContainer.style.background = '#bbb7b773';
+                                    loopContainer.style.borderLeft = 'none';
+                                }
+                            }
+                        }, 100);
+                        
+                        if (oldGroupId !== null && oldGroupId !== undefined) {
+                            this.updateGroupCount(oldGroupId);
+                        }
+                        if (item.groupId !== null && item.groupId !== undefined) {
+                            this.updateGroupCount(item.groupId);
+                        }
+                    }
+                });
+
+                this.applyMute();
+                this.updateAllGroupSelectors();
+                this.updateUngroupedCount();
+                this.applyFilters();
+
+                this.backupLoaded = true;
+                this.backupInfo = {
+                    fileName: file.name,
+                    timestamp: backup.timestamp,
+                    groups: backup.groups.length,
+                    audiosConfigured: configuredCount,
+                    totalAudios: this.audioElements.length
+                };
+                this.updateBackupStatus();
+
+                const notConfigured = this.audioElements.length - configuredCount;
+                let message = `Respaldo importado. ${this.groups.length} grupo(s) creados, ${configuredCount} audio(s) configurados`;
+                if (notConfigured > 0) {
+                    message += `. ${notConfigured} audio(s) sin configuración en el respaldo`;
+                }
+                this.showAlert(message, 'success');
+            } catch (error) {
+                console.error('Error al importar respaldo:', error);
+                this.showAlert('Error al importar respaldo: ' + error.message, 'danger');
+            }
+        };
+
+        reader.readAsText(file);
+        e.target.value = '';
+    }
+
+    resetFactory() {
+        if (!confirm('¿Estás seguro de restablecer todo de fábrica? Esto eliminará todos los grupos y restablecerá todos los ajustes.')) {
+            return;
+        }
+
+        this.groups.forEach(g => {
+            const tagElement = document.querySelector(`[data-group-id="${g.id}"]`);
+            if (tagElement) tagElement.remove();
+            
+            const sectionElement = document.getElementById(`group-section-${g.id}`);
+            if (sectionElement) sectionElement.remove();
+        });
+
+        this.groups = [];
+        this.groupId = 0;
+
+        this.audioElements.forEach(item => {
+            item.groupId = null;
+
+            const slider = document.querySelector(`.volume-slider[data-id="${item.id}"]`);
+            if (slider) {
+                slider.value = DEFAULT_VOLUME;
+                this.changeVolume(item.id, DEFAULT_VOLUME);
+            }
+
+            if (item.isMuted) {
+                this.toggleMute(item.id);
+            }
+
+            const loopCheckbox = document.getElementById(`loop-${item.id}`);
+            if (loopCheckbox && loopCheckbox.checked) {
+                loopCheckbox.checked = false;
+                this.toggleLoop(item.id, false);
+            }
+
+            const audioElement = document.getElementById(`audio-item-${item.id}`);
+            if (audioElement) {
+                audioElement.remove();
+                this.renderAudioItem(item);
+            }
+        });
+
+        this.updateAllGroupSelectors();
+        this.updateUngroupedCount();
+        this.applyFilters();
+
+        this.backupLoaded = false;
+        this.backupInfo = null;
+        this.updateBackupStatus();
+
+        this.showAlert('Configuración restablecida de fábrica', 'info');
+    }
+
+    updateBackupStatus() {
+        const statusDiv = document.getElementById('backupStatus');
+        const statusText = document.getElementById('backupStatusText');
+        
+        if (this.backupLoaded && this.backupInfo) {
+            const date = new Date(this.backupInfo.timestamp);
+            const formattedDate = date.toLocaleDateString('es-ES', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            statusText.innerHTML = `
+                <strong>Configuración cargada:</strong> ${this.escapeHtml(this.backupInfo.fileName)} 
+                <span class="text-muted">(${formattedDate})</span> - 
+                ${this.backupInfo.groups} grupo(s), ${this.backupInfo.audiosConfigured}/${this.backupInfo.totalAudios} audio(s) configurados
+            `;
+            statusDiv.style.display = 'block';
+        } else {
+            statusDiv.style.display = 'none';
+        }
+    }
+
     showEmptyState(message = 'No hay audios cargados') {
         const list = document.getElementById('audioList');
         let emptyState = list.querySelector('.empty-state');
@@ -1205,7 +1460,7 @@ class AudioManager {
         setTimeout(() => {
             alert.classList.remove('show');
             setTimeout(() => alert.remove(), 150);
-        }, 2000);
+        }, 3000);
     }
 
     getAlertIcon(type) {
