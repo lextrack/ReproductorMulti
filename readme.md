@@ -11,8 +11,8 @@ Aplicación web para reproducción simultánea de múltiples archivos de audio. 
 - Sistema de filtros (reproduciendo, pausados, detenidos, en loop)
 - Búsqueda instantánea de audios
 - Control de volumen hasta 200%
-- Barra de progreso interactiva
 - Atajo de teclado (Espacio para pausar/reanudar todo)
+- Agregar audios a grupos
 
 ## Requisitos
 
@@ -20,5 +20,6 @@ Aplicación web para reproducción simultánea de múltiples archivos de audio. 
 - Archivos de audio en formato compatible (MP3, WAV, OGG, AAC etc.)
 
 ## Licencia
+
 
 Proyecto bajo la licencia MIT
