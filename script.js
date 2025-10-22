@@ -9,6 +9,8 @@ class AudioManager {
         this.audioContext = null;
         this.playingCount = 0;
         this.currentFilter = 'all';
+        this.groups = [];
+        this.groupId = 0;
         this.initAudioContext();
         this.setupEventListeners();
         this.setupKeyboardShortcuts();
@@ -31,6 +33,10 @@ class AudioManager {
         document.getElementById('pauseAllBtn').addEventListener('click', () => this.pauseAll());
         document.getElementById('stopAllBtn').addEventListener('click', () => this.stopAll());
         document.getElementById('resetAllVolumes').addEventListener('click', () => this.resetAllVolumes());
+        document.getElementById('createGroupBtn').addEventListener('click', () => this.createGroup());
+        document.getElementById('newGroupName').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.createGroup();
+        });
         
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.addEventListener('click', (e) => this.handleFilterClick(e));
@@ -44,6 +50,338 @@ class AudioManager {
             if (e.code === 'Space') {
                 e.preventDefault();
                 this.togglePlayPauseAll();
+            }
+        });
+    }
+
+    loadGroupsFromStorage() {
+        const saved = localStorage.getItem('audioGroups');
+        if (saved) {
+            try {
+                const data = JSON.parse(saved);
+                this.groups = data.groups || [];
+                this.groupId = data.nextId || 0;
+                this.renderAllGroups();
+            } catch (e) {
+                console.error('Error loading groups:', e);
+            }
+        }
+    }
+
+    saveGroupsToStorage() {
+        localStorage.setItem('audioGroups', JSON.stringify({
+            groups: this.groups,
+            nextId: this.groupId
+        }));
+    }
+
+    createGroup() {
+        const input = document.getElementById('newGroupName');
+        const name = input.value.trim();
+        
+        if (!name) {
+            this.showAlert('Ingresa un nombre para el grupo', 'warning');
+            return;
+        }
+
+        const group = {
+            id: this.groupId++,
+            name: name,
+            collapsed: false,
+            color: this.generateSoftColor()
+        };
+
+        this.groups.push(group);
+        this.renderGroupTag(group);
+        this.renderGroupSection(group);
+        this.updateAllGroupSelectors();
+        input.value = '';
+        this.showAlert(`Grupo "${name}" creado`, 'success');
+    }
+
+    updateAllGroupSelectors() {
+        this.audioElements.forEach(item => {
+            let selector = document.querySelector(`.group-selector[data-id="${item.id}"]`);
+            
+            if (!selector) {
+                const audioControls = document.querySelector(`#audio-item-${item.id} .audio-controls`);
+                if (audioControls) {
+                    const selectorDiv = document.createElement('div');
+                    selectorDiv.className = 'audio-group-selector';
+                    selectorDiv.innerHTML = `
+                        <i class="bi bi-folder"></i>
+                        <select class="group-selector" data-id="${item.id}">
+                            <option value="">Sin grupo</option>
+                        </select>
+                    `;
+                    audioControls.appendChild(selectorDiv);
+                    selector = selectorDiv.querySelector('.group-selector');
+                    selector.addEventListener('change', (e) => this.changeAudioGroup(item.id, e.target.value));
+                }
+            }
+            
+            if (selector) {
+                const currentValue = selector.value;
+                const groupOptions = this.groups.map(g => 
+                    `<option value="${g.id}" ${item.groupId == g.id ? 'selected' : ''}>${this.escapeHtml(g.name)}</option>`
+                ).join('');
+                
+                selector.innerHTML = `
+                    <option value="">Sin grupo</option>
+                    ${groupOptions}
+                `;
+                selector.value = currentValue;
+            }
+        });
+    }
+
+    deleteGroup(groupId) {
+        const group = this.groups.find(g => g.id === groupId);
+        if (!group) return;
+
+        const audiosInGroup = this.audioElements.filter(a => a.groupId === groupId);
+        
+        if (audiosInGroup.length > 0) {
+            if (!confirm(`¿Eliminar el grupo "${group.name}"? Los ${audiosInGroup.length} audio(s) se moverán a "Sin grupo"`)) {
+                return;
+            }
+            
+            audiosInGroup.forEach(audio => {
+                audio.groupId = null;
+                const audioElement = document.getElementById(`audio-item-${audio.id}`);
+                if (audioElement) {
+                    audioElement.remove();
+                    this.renderAudioItem(audio);
+                }
+            });
+        }
+
+        this.groups = this.groups.filter(g => g.id !== groupId);
+        
+        const tagElement = document.querySelector(`[data-group-id="${groupId}"]`);
+        if (tagElement) tagElement.remove();
+        
+        const sectionElement = document.getElementById(`group-section-${groupId}`);
+        if (sectionElement) sectionElement.remove();
+        
+        this.updateAllGroupSelectors();
+        this.updateUngroupedCount();
+        this.showAlert(`Grupo "${group.name}" eliminado. Audios movidos a "Sin grupo"`, 'info');
+    }
+
+    renderGroupTag(group) {
+        const container = document.getElementById('groupsList');
+        const tag = document.createElement('div');
+        tag.className = 'group-tag';
+        tag.dataset.groupId = group.id;
+        tag.style.background = group.color;
+        tag.style.color = '#333';
+        
+        const audioCount = this.audioElements.filter(a => a.groupId === group.id).length;
+        
+        tag.innerHTML = `
+            <i class="bi bi-folder"></i>
+            <span>${this.escapeHtml(group.name)}</span>
+            <span class="group-count">${audioCount}</span>
+            <button class="btn-delete-group" title="Eliminar grupo">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        `;
+        
+        tag.querySelector('.btn-delete-group').addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.deleteGroup(group.id);
+        });
+        
+        container.appendChild(tag);
+    }
+
+    renderAllGroups() {
+        const container = document.getElementById('groupsList');
+        container.innerHTML = '';
+        this.groups.forEach(group => this.renderGroupTag(group));
+    }
+
+    updateGroupCount(groupId) {
+        const tag = document.querySelector(`[data-group-id="${groupId}"]`);
+        if (tag) {
+            const count = this.audioElements.filter(a => a.groupId === groupId).length;
+            const countSpan = tag.querySelector('.group-count');
+            if (countSpan) countSpan.textContent = count;
+        }
+
+        const badge = document.getElementById(`group-badge-${groupId}`);
+        if (badge) {
+            const count = this.audioElements.filter(a => a.groupId === groupId).length;
+            badge.textContent = `${count} audio(s)`;
+        }
+    }
+
+    renderGroupSection(group) {
+        const list = document.getElementById('audioList');
+        
+        let section = document.getElementById(`group-section-${group.id}`);
+        if (section) return;
+        
+        section = document.createElement('div');
+        section.className = 'group-section';
+        section.id = `group-section-${group.id}`;
+        
+        const darkerColor = this.generateDarkerShade(group.color);
+        
+        section.innerHTML = `
+            <div class="group-header ${group.collapsed ? 'collapsed' : ''}" data-group-id="${group.id}" style="background: linear-gradient(135deg, ${group.color} 0%, ${darkerColor} 100%);">
+                <div class="group-header-left">
+                    <i class="bi bi-chevron-down group-collapse-icon" style="color: #333;"></i>
+                    <h5 class="group-title" style="color: #333;">
+                        <i class="bi bi-folder"></i>
+                        ${this.escapeHtml(group.name)}
+                    </h5>
+                </div>
+                <div class="group-info">
+                    <span class="badge bg-dark group-badge" id="group-badge-${group.id}">0 audio(s)</span>
+                    <div class="group-controls">
+                        <button class="btn btn-success btn-small btn-group-control" data-action="play">
+                            <i class="bi bi-play-fill"></i>
+                        </button>
+                        <button class="btn btn-warning btn-small btn-group-control" data-action="pause">
+                            <i class="bi bi-pause-fill"></i>
+                        </button>
+                        <button class="btn btn-danger btn-small btn-group-control" data-action="stop">
+                            <i class="bi bi-stop-fill"></i>
+                        </button>
+                        <button class="btn btn-secondary btn-small btn-group-control" data-action="mute" title="Mute">
+                            <i class="bi bi-volume-mute"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="group-content ${group.collapsed ? 'collapsed' : ''}" id="group-content-${group.id}" style="background: ${group.color};">
+            </div>
+        `;
+        
+        const header = section.querySelector('.group-header');
+        header.addEventListener('click', (e) => {
+            if (e.target.closest('.btn-group-control')) return;
+            this.toggleGroupCollapse(group.id);
+        });
+        
+        section.querySelectorAll('.btn-group-control').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const action = btn.dataset.action;
+                this.groupAction(group.id, action);
+            });
+        });
+        
+        const ungroupedSection = document.getElementById('ungrouped-section');
+        if (ungroupedSection) {
+            list.insertBefore(section, ungroupedSection);
+        } else {
+            list.appendChild(section);
+        }
+    }
+
+    toggleGroupCollapse(groupId) {
+        const group = this.groups.find(g => g.id === groupId);
+        if (!group) return;
+
+        group.collapsed = !group.collapsed;
+
+        const header = document.querySelector(`.group-header[data-group-id="${groupId}"]`);
+        const content = document.getElementById(`group-content-${groupId}`);
+        
+        if (header && content) {
+            if (group.collapsed) {
+                header.classList.add('collapsed');
+                content.classList.add('collapsed');
+            } else {
+                header.classList.remove('collapsed');
+                content.classList.remove('collapsed');
+            }
+        }
+    }
+
+    groupAction(groupId, action) {
+        const audios = this.audioElements.filter(a => a.groupId === groupId);
+        
+        switch(action) {
+            case 'play':
+                audios.forEach(audio => this.playSingle(audio.id));
+                break;
+            case 'pause':
+                audios.forEach(audio => this.pauseSingle(audio.id));
+                break;
+            case 'stop':
+                audios.forEach(audio => {
+                    this.pauseSingle(audio.id);
+                    audio.audio.currentTime = 0;
+                });
+                break;
+            case 'mute':
+                this.toggleGroupMute(groupId);
+                break;
+        }
+    }
+
+    toggleMute(id) {
+        const item = this.audioElements.find(el => el.id === id);
+        if (!item) return;
+
+        const btn = document.querySelector(`.btn-mute[data-id="${id}"]`);
+        
+        item.isMuted = !item.isMuted;
+        
+        if (item.isMuted) {
+            btn.classList.add('active');
+            btn.innerHTML = '<i class="bi bi-volume-mute-fill"></i>';
+        } else {
+            btn.classList.remove('active');
+            btn.innerHTML = '<i class="bi bi-volume-mute"></i>';
+        }
+
+        this.applyMute();
+        this.updateHistory();
+    }
+
+    toggleGroupMute(groupId) {
+        const audios = this.audioElements.filter(a => a.groupId === groupId);
+        const groupBtn = document.querySelector(`.group-header[data-group-id="${groupId}"] .btn-group-control[data-action="mute"]`);
+        
+        const allMuted = audios.every(a => a.isMuted);
+        
+        audios.forEach(a => {
+            a.isMuted = !allMuted;
+            const btn = document.querySelector(`.btn-mute[data-id="${a.id}"]`);
+            if (btn) {
+                if (a.isMuted) {
+                    btn.classList.add('active');
+                    btn.innerHTML = '<i class="bi bi-volume-mute-fill"></i>';
+                } else {
+                    btn.classList.remove('active');
+                    btn.innerHTML = '<i class="bi bi-volume-mute"></i>';
+                }
+            }
+        });
+
+        if (!allMuted) {
+            groupBtn?.classList.add('active');
+        } else {
+            groupBtn?.classList.remove('active');
+        }
+
+        this.applyMute();
+        this.updateHistory();
+    }
+
+    applyMute() {
+        this.audioElements.forEach(item => {
+            if (item.isMuted) {
+                item.gainNode.gain.value = 0;
+            } else {
+                const slider = document.querySelector(`.volume-slider[data-id="${item.id}"]`);
+                const volume = slider ? slider.value : DEFAULT_VOLUME;
+                item.gainNode.gain.value = volume / 100;
             }
         });
     }
@@ -77,6 +415,30 @@ class AudioManager {
                 }
             }
         });
+
+        this.groups.forEach(group => {
+            const section = document.getElementById(`group-section-${group.id}`);
+            if (section) {
+                const audiosInGroup = this.audioElements.filter(a => a.groupId === group.id);
+                const visibleInGroup = audiosInGroup.filter(a => {
+                    const audioItem = document.getElementById(`audio-item-${a.id}`);
+                    return audioItem && audioItem.style.display !== 'none';
+                });
+                
+                section.style.display = visibleInGroup.length > 0 ? 'block' : 'none';
+            }
+        });
+
+        const ungroupedSection = document.getElementById('ungrouped-section');
+        if (ungroupedSection) {
+            const ungroupedAudios = this.audioElements.filter(a => !a.groupId);
+            const visibleUngrouped = ungroupedAudios.filter(a => {
+                const audioItem = document.getElementById(`audio-item-${a.id}`);
+                return audioItem && audioItem.style.display !== 'none';
+            });
+            
+            ungroupedSection.style.display = visibleUngrouped.length > 0 ? 'block' : 'none';
+        }
         
         if (visibleCount === 0 && this.audioElements.length > 0) {
             this.showEmptyState('No se encontraron audios con los filtros aplicados');
@@ -130,7 +492,7 @@ class AudioManager {
         return true;
     }
 
-    addAudio(file) {
+    addAudio(file, groupId = null) {
         const id = this.audioId++;
         const url = URL.createObjectURL(file);
         const audio = new Audio(url);
@@ -149,12 +511,21 @@ class AudioManager {
             gainNode: gainNode,
             source: source,
             hasError: false,
-            isPlaying: false
+            isPlaying: false,
+            groupId: groupId,
+            isMuted: false,
+            originalVolume: DEFAULT_VOLUME
         };
 
         this.setupAudioEventListeners(audioItem);
         this.audioElements.push(audioItem);
         this.renderAudioItem(audioItem);
+        
+        if (groupId !== null && groupId !== undefined) {
+            this.updateGroupCount(groupId);
+        } else {
+            this.updateUngroupedCount();
+        }
     }
 
     setupAudioEventListeners(item) {
@@ -200,11 +571,31 @@ class AudioManager {
     }
 
     renderAudioItem(item) {
-        const list = document.getElementById('audioList');
+        let container;
+        
+        if (item.groupId !== null && item.groupId !== undefined) {
+            const group = this.groups.find(g => g.id === item.groupId);
+            if (group) {
+                this.renderGroupSection(group);
+                container = document.getElementById(`group-content-${item.groupId}`);
+            }
+        }
+        
+        if (!container) {
+            let ungroupedSection = document.getElementById('ungrouped-section');
+            if (!ungroupedSection) {
+                ungroupedSection = this.createUngroupedSection();
+            }
+            container = document.getElementById('ungrouped-content');
+        }
         
         const div = document.createElement('div');
         div.className = 'audio-item card';
         div.id = `audio-item-${item.id}`;
+        
+        const groupOptions = this.groups.map(g => 
+            `<option value="${g.id}" ${item.groupId === g.id ? 'selected' : ''}>${this.escapeHtml(g.name)}</option>`
+        ).join('');
         
         div.innerHTML = `
             <div class="card-body">
@@ -234,6 +625,9 @@ class AudioManager {
                     <button class="btn btn-danger btn-small btn-remove" data-id="${item.id}">
                         <i class="bi bi-trash-fill"></i>
                     </button>
+                    <button class="btn btn-secondary btn-small btn-mute" data-id="${item.id}" title="Mute">
+                        <i class="bi bi-volume-mute"></i>
+                    </button>
                     <button class="btn btn-purple btn-small btn-reset-volume" data-id="${item.id}">
                         <span>Reset volumen</span>
                     </button>
@@ -242,6 +636,13 @@ class AudioManager {
                         <label for="loop-${item.id}">
                             <span>Loop</span>
                         </label>
+                    </div>
+                    <div class="audio-group-selector">
+                        <i class="bi bi-folder"></i>
+                        <select class="group-selector" data-id="${item.id}">
+                            <option value="">Sin grupo</option>
+                            ${groupOptions}
+                        </select>
                     </div>
                 </div>
                 
@@ -267,24 +668,121 @@ class AudioManager {
             </div>
         `;
         
-        list.appendChild(div);
+        container.appendChild(div);
         this.attachItemEventListeners(div, item.id);
+    }
+
+    createUngroupedSection() {
+        const list = document.getElementById('audioList');
+        const section = document.createElement('div');
+        section.className = 'group-section';
+        section.id = 'ungrouped-section';
+        
+        section.innerHTML = `
+            <div class="group-header" data-group-id="ungrouped">
+                <div class="group-header-left">
+                    <i class="bi bi-chevron-down group-collapse-icon"></i>
+                    <h5 class="group-title">
+                        <i class="bi bi-music-note-list"></i>
+                        Sin agrupar
+                    </h5>
+                </div>
+                <div class="group-info">
+                    <span class="badge bg-secondary group-badge" id="ungrouped-badge">0 audio(s)</span>
+                </div>
+            </div>
+            <div class="group-content" id="ungrouped-content">
+            </div>
+        `;
+        
+        const header = section.querySelector('.group-header');
+        header.addEventListener('click', () => {
+            const content = document.getElementById('ungrouped-content');
+            const icon = header.querySelector('.group-collapse-icon');
+            
+            header.classList.toggle('collapsed');
+            content.classList.toggle('collapsed');
+        });
+        
+        list.appendChild(section);
+        this.updateUngroupedCount();
+        return section;
+    }
+
+    updateUngroupedCount() {
+        const badge = document.getElementById('ungrouped-badge');
+        if (badge) {
+            const count = this.audioElements.filter(a => a.groupId === null || a.groupId === undefined).length;
+            badge.textContent = `${count} audio(s)`;
+        }
     }
 
     attachItemEventListeners(div, id) {
         div.querySelector('.btn-play-single').addEventListener('click', () => this.playSingle(id));
         div.querySelector('.btn-pause-single').addEventListener('click', () => this.pauseSingle(id));
         div.querySelector('.btn-remove').addEventListener('click', () => this.removeAudio(id));
+        div.querySelector('.btn-mute').addEventListener('click', () => this.toggleMute(id));
         div.querySelector('.btn-reset-volume').addEventListener('click', () => this.resetVolume(id));
         div.querySelector(`#loop-${id}`).addEventListener('change', (e) => this.toggleLoop(id, e.target.checked));
         div.querySelector('.volume-slider').addEventListener('input', (e) => this.changeVolume(id, e.target.value));
         div.querySelector('.progress').addEventListener('click', (e) => this.seekAudio(id, e));
+        
+        const groupSelector = div.querySelector('.group-selector');
+        if (groupSelector) {
+            groupSelector.addEventListener('change', (e) => this.changeAudioGroup(id, e.target.value));
+        }
+    }
+
+    changeAudioGroup(audioId, newGroupId) {
+        const item = this.audioElements.find(el => el.id === audioId);
+        if (!item) return;
+
+        const oldGroupId = item.groupId;
+        item.groupId = newGroupId === '' ? null : parseInt(newGroupId);
+
+        const audioElement = document.getElementById(`audio-item-${audioId}`);
+        if (audioElement) {
+            audioElement.remove();
+            this.renderAudioItem(item);
+        }
+
+        if (oldGroupId !== null && oldGroupId !== undefined) {
+            this.updateGroupCount(oldGroupId);
+        } else {
+            this.updateUngroupedCount();
+        }
+        
+        if (item.groupId !== null && item.groupId !== undefined) {
+            this.updateGroupCount(item.groupId);
+        } else {
+            this.updateUngroupedCount();
+        }
+
+        this.applyFilters();
     }
 
     escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    generateSoftColor() {
+    const hue = Math.floor(Math.random() * 360);
+    const saturation = 65 + Math.floor(Math.random() * 20);
+    const lightness = 85 + Math.floor(Math.random() * 10);
+    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+    }
+
+    generateDarkerShade(color) {
+        const match = color.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+        if (match) {
+            const hue = match[1];
+            const saturation = match[2];
+            const lightness = Math.max(parseInt(match[3]) - 15, 50);
+            return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+        }
+        return color;
     }
 
     updatePlayingState(id, isPlaying) {
@@ -436,6 +934,8 @@ class AudioManager {
         const index = this.audioElements.findIndex(el => el.id === id);
         if (index !== -1) {
             const item = this.audioElements[index];
+            const groupId = item.groupId;
+            
             item.audio.pause();
             URL.revokeObjectURL(item.url);
             this.audioElements.splice(index, 1);
@@ -443,6 +943,12 @@ class AudioManager {
             const element = document.getElementById(`audio-item-${id}`);
             if (element) {
                 element.remove();
+            }
+            
+            if (groupId !== null && groupId !== undefined) {
+                this.updateGroupCount(groupId);
+            } else {
+                this.updateUngroupedCount();
             }
             
             if (this.audioElements.length === 0) {
@@ -468,7 +974,7 @@ class AudioManager {
                 loopContainer.style.borderLeft = '3px solid var(--purple-color)';
             } else {
                 audioItem.classList.remove('looping');
-                loopContainer.style.background = '#f8f9fa';
+                loopContainer.style.background = '#bbb7b773';
                 loopContainer.style.borderLeft = 'none';
             }
             
@@ -590,11 +1096,17 @@ class AudioManager {
                 const historyItem = document.createElement('div');
                 historyItem.className = 'history-item';
                 historyItem.id = `history-item-${item.id}`;
+                
+                const muteIndicator = item.isMuted ? '<i class="bi bi-volume-mute-fill text-danger ms-1"></i>' : '';
+                
                 historyItem.innerHTML = `
-                    <div class="history-item-name">${this.escapeHtml(item.name)}</div>
+                    <div class="history-item-name">
+                        ${this.escapeHtml(item.name)}
+                    </div>
                     <div class="history-item-time">
                         <i class="bi bi-clock"></i>
                         <span id="history-time-${item.id}">${this.formatTime(item.audio.currentTime)}</span>
+                        ${muteIndicator}
                     </div>
                 `;
                 
