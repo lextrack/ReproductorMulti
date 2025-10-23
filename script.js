@@ -1,6 +1,7 @@
 const MAX_FILE_SIZE = 100 * 1024 * 1024;
 const MAX_VOLUME = 200;
 const DEFAULT_VOLUME = 100;
+const FADE_DURATION = 300; // Duración del fade en milisegundos
 
 class AudioManager {
     constructor() {
@@ -26,6 +27,27 @@ class AudioManager {
             console.error('Web Audio API no soportada:', e);
             this.showAlert('Tu navegador no soporta Web Audio API', 'danger');
         }
+    }
+
+    applyFade(gainNode, targetVolume, duration, onComplete) {
+        const startVolume = gainNode.gain.value;
+        const volumeDiff = targetVolume - startVolume;
+        const startTime = Date.now();
+        
+        const updateVolume = () => {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            gainNode.gain.value = startVolume + (volumeDiff * progress);
+            
+            if (progress < 1) {
+                requestAnimationFrame(updateVolume);
+            } else if (onComplete) {
+                onComplete();
+            }
+        };
+        
+        requestAnimationFrame(updateVolume);
     }
 
     setupEventListeners() {
@@ -283,8 +305,16 @@ class AudioManager {
                 break;
             case 'stop':
                 audios.forEach(audio => {
-                    this.pauseSingle(audio.id);
-                    audio.audio.currentTime = 0;
+                    if (!audio.audio.paused) {
+                        // Si está reproduciéndose, hacer fade out primero
+                        this.pauseSingle(audio.id);
+                        setTimeout(() => {
+                            audio.audio.currentTime = 0;
+                        }, FADE_DURATION);
+                    } else {
+                        // Si ya está pausado, solo reiniciar
+                        audio.audio.currentTime = 0;
+                    }
                 });
                 break;
             case 'mute':
@@ -845,9 +875,15 @@ class AudioManager {
         const item = this.audioElements.find(el => el.id === id);
         if (item && !item.hasError) {
             this.audioContext.resume().then(() => {
-                item.audio.play().catch(e => {
+                const targetVolume = item.gainNode.gain.value;
+                item.gainNode.gain.value = 0;
+                
+                item.audio.play().then(() => {
+                    this.applyFade(item.gainNode, targetVolume, FADE_DURATION);
+                }).catch(e => {
                     console.error('Error al reproducir:', e);
                     this.showAlert('Error al reproducir el audio', 'danger');
+                    item.gainNode.gain.value = targetVolume;
                 });
             });
         }
@@ -856,7 +892,11 @@ class AudioManager {
     pauseSingle(id) {
         const item = this.audioElements.find(el => el.id === id);
         if (item) {
-            item.audio.pause();
+            const currentVolume = item.gainNode.gain.value;
+            this.applyFade(item.gainNode, 0, FADE_DURATION, () => {
+                item.audio.pause();
+                item.gainNode.gain.value = currentVolume;
+            });
         }
     }
 
@@ -1017,15 +1057,23 @@ class AudioManager {
             let playedCount = 0;
             this.audioElements.forEach(item => {
                 if (!item.hasError) {
-                    item.audio.play().catch(e => {
+                    const targetVolume = item.gainNode.gain.value;
+                    item.gainNode.gain.value = 0;
+                    
+                    item.audio.play().then(() => {
+                        this.applyFade(item.gainNode, targetVolume, FADE_DURATION);
+                        playedCount++;
+                    }).catch(e => {
                         console.error('Error al reproducir:', e);
+                        item.gainNode.gain.value = targetVolume;
                     });
-                    playedCount++;
                 }
             });
             
             if (playedCount > 0) {
-                this.showAlert(`Reproduciendo ${playedCount} audio(s)`, 'success');
+                setTimeout(() => {
+                    this.showAlert(`Reproduciendo ${playedCount} audio(s)`, 'success');
+                }, 100);
             }
         });
     }
@@ -1034,7 +1082,11 @@ class AudioManager {
         let pausedCount = 0;
         this.audioElements.forEach(item => {
             if (item.isPlaying) {
-                item.audio.pause();
+                const currentVolume = item.gainNode.gain.value;
+                this.applyFade(item.gainNode, 0, FADE_DURATION, () => {
+                    item.audio.pause();
+                    item.gainNode.gain.value = currentVolume;
+                });
                 pausedCount++;
             }
         });
@@ -1048,9 +1100,21 @@ class AudioManager {
         let stoppedCount = 0;
         this.audioElements.forEach(item => {
             if (!item.audio.paused || item.audio.currentTime > 0) {
-                item.audio.pause();
-                item.audio.currentTime = 0;
-                stoppedCount++;
+                const currentVolume = item.gainNode.gain.value;
+                
+                // Si ya está pausado, solo reiniciar
+                if (item.audio.paused) {
+                    item.audio.currentTime = 0;
+                    stoppedCount++;
+                } else {
+                    // Si está reproduciéndose, hacer fade out
+                    this.applyFade(item.gainNode, 0, FADE_DURATION, () => {
+                        item.audio.pause();
+                        item.audio.currentTime = 0;
+                        item.gainNode.gain.value = currentVolume;
+                    });
+                    stoppedCount++;
+                }
             }
         });
         
