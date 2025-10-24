@@ -13,7 +13,6 @@ export class AudioManager {
         this.audioContext = null;
         this.playingCount = 0;
         
-        // Inicializar módulos
         this.groupManager = new GroupManager(this);
         this.backupManager = new BackupManager(this);
         this.audioPlayer = new AudioPlayer(this);

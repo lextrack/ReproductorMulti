@@ -37,21 +37,24 @@
                                 </button>
                             </div>
                             <div id="groupsList" class="groups-container mt-3"></div>
+                            <small class="form-text text-muted d-block mt-2">
+                                <strong>Funcionamiento:</strong> Agrupa distintos audios en grupos y no tenerlos sueltos en la lista generica "Sin agrupar". 
+                            </small>
                         </div>
 
                         <div class="backup-section mb-4">
                             <label class="form-label fw-bold">
-                                <i class="bi bi-arrow-repeat"></i> Respaldo y Restauración de Configuración
+                                <i class="bi bi-arrow-repeat"></i> Respaldo y Restauración
                             </label>
                         <div class="d-flex gap-2 flex-wrap">
                             <button class="btn btn-info btn-sm" id="exportBackupBtn">
-                                <i class="bi bi-download"></i> Exportar configuración
+                                <i class="bi bi-download"></i> Exportar respaldo
                             </button>
                             <button class="btn btn-warning btn-sm" id="importBackupBtn">
-                                <i class="bi bi-upload"></i> Importar configuración
+                                <i class="bi bi-upload"></i> Importar respaldo
                             </button>
                             <button class="btn btn-danger btn-sm" id="resetFactoryBtn">
-                                <i class="bi bi-x-circle"></i> Restablecer y quitar configuración actual
+                                <i class="bi bi-x-circle"></i> Restablecer todo
                             </button>
                         </div>
                             <input type="file" id="backupFile" accept=".json" style="display: none;">
@@ -65,12 +68,12 @@
                                 <strong>Funcionamiento:</strong> El respaldo guarda la configuración de los audios según su nombre y formato. 
                                 <strong>Primero debes cargar los archivos de audio y luego importar la configuración</strong>.
                                 <br>
-                                <strong>Nota:</strong> Si renombras o cambias el formato de un audio, no se le aplicará la configuración guardada.
+                                <strong>Nota:</strong> Si renombras o cambias el formato de un audio, no se le aplicará la configuración.
                             </small>
                         </div>
                         
                         <div class="global-controls">
-                            <h6 class="mb-3 text-muted">
+                            <h6 class="mb-3 text-dark">
                                 <i class="bi bi-sliders"></i> Controles Globales
                                 <span class="badge bg-secondary ms-2" id="playingCounter">0 reproduciendo</span>
                             </h6>

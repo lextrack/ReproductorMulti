@@ -47,7 +47,7 @@ export class AudioPlayer {
                 item.gainNode.gain.cancelScheduledValues(currentTime);
 
                 item.gainNode.gain.setValueAtTime(0.01, currentTime);
-                item.gainNode.gain.linearRampToValueAtTime(targetVolume, currentTime + 0.15);
+                item.gainNode.gain.linearRampToValueAtTime(targetVolume, currentTime + 0.3);
                 
                 item.audio.play().catch(e => {
                     console.error('Error al reproducir:', e);
@@ -66,7 +66,7 @@ export class AudioPlayer {
             item.gainNode.gain.cancelScheduledValues(currentTime);
             
             item.gainNode.gain.setValueAtTime(currentVolume, currentTime);
-            item.gainNode.gain.linearRampToValueAtTime(0.01, currentTime + 0.2);
+            item.gainNode.gain.linearRampToValueAtTime(0.01, currentTime + 0.3);
             
             setTimeout(() => {
                 item.audio.pause();
@@ -89,7 +89,7 @@ export class AudioPlayer {
                     item.gainNode.gain.cancelScheduledValues(currentTime);
                     
                     item.gainNode.gain.setValueAtTime(0.01, currentTime);
-                    item.gainNode.gain.linearRampToValueAtTime(targetVolume, currentTime + 0.15);
+                    item.gainNode.gain.linearRampToValueAtTime(targetVolume, currentTime + 0.3);
                     
                     item.audio.play().catch(e => {
                         console.error('Error al reproducir:', e);
@@ -114,7 +114,7 @@ export class AudioPlayer {
 
                 item.gainNode.gain.cancelScheduledValues(currentTime);
                 item.gainNode.gain.setValueAtTime(currentVolume, currentTime);
-                item.gainNode.gain.linearRampToValueAtTime(0.01, currentTime + 0.15);
+                item.gainNode.gain.linearRampToValueAtTime(0.01, currentTime + 0.3);
                 
                 pausedCount++;
             }
@@ -143,7 +143,7 @@ export class AudioPlayer {
                 
                 item.gainNode.gain.cancelScheduledValues(currentTime);
                 item.gainNode.gain.setValueAtTime(currentVolume, currentTime);
-                item.gainNode.gain.linearRampToValueAtTime(0.01, currentTime + 0.2);
+                item.gainNode.gain.linearRampToValueAtTime(0.01, currentTime + 0.3);
                 
                 stoppedCount++;
             }

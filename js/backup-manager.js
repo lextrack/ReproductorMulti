@@ -45,7 +45,7 @@ export class BackupManager {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        Utils.showAlert('Configuración exportada correctamente', 'success');
+        Utils.showAlert('Respaldo exportado correctamente', 'success');
     }
 
     getAudioKey(name) {
@@ -72,7 +72,6 @@ export class BackupManager {
                     throw new Error('Formato de respaldo inválido');
                 }
 
-                // Verificar audios faltantes
                 const currentAudioKeys = this.audioManager.audioElements.map(item => 
                     this.getAudioKey(item.file.name)
                 );
@@ -88,7 +87,7 @@ export class BackupManager {
                     const proceed = confirm(
                         `ADVERTENCIA: Faltan ${missingAudios.length} audio(s) que estaban en el respaldo:\n\n${missingNames}\n\n` +
                         `Para restaurar completamente el respaldo, debes recargar la página, cargar los audios y volver a cargar el respaldo.\n\n` +
-                        `¿Deseas continuar de todas formas? (Los audios que se eliminaron del grupo no apareceran hasta que recargues todo de nuevo)`
+                        `¿Deseas continuar? (Los audios que se eliminaron del grupo no apareceran hasta que recargues todo de nuevo)`
                     );
                     
                     if (!proceed) {
@@ -362,7 +361,7 @@ export class BackupManager {
             });
             
             statusText.innerHTML = `
-                <strong>Configuración cargada:</strong> ${Utils.escapeHtml(this.backupInfo.fileName)} 
+                <strong>Respaldo cargado:</strong> ${Utils.escapeHtml(this.backupInfo.fileName)} 
                 <span class="text-muted">(${formattedDate})</span> - 
                 ${this.backupInfo.groups} grupo(s), ${this.backupInfo.audiosConfigured}/${this.backupInfo.totalAudios} audio(s) configurados
             `;

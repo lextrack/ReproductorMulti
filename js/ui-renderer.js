@@ -76,7 +76,7 @@ export class UIRenderer {
                     <div class="audio-group-selector">
                         <i class="bi bi-folder"></i>
                         <select class="group-selector" data-id="${item.id}">
-                            <option value="">Sin grupo</option>
+                            <option value="">Sin agrupar</option>
                             ${groupOptions}
                         </select>
                     </div>

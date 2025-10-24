@@ -30,7 +30,6 @@ export class FilterManager {
             }
         });
 
-        // Actualizar visibilidad de secciones de grupo
         this.audioManager.groupManager.getAllGroups().forEach(group => {
             const groupSection = document.getElementById(`group-section-${group.id}`);
             if (groupSection) {
@@ -44,7 +43,6 @@ export class FilterManager {
             }
         });
 
-        // Actualizar visibilidad de sección sin agrupar
         const ungroupedSection = document.getElementById('ungrouped-section');
         if (ungroupedSection) {
             const visibleUngrouped = this.audioManager.audioElements.filter(item => {
@@ -56,7 +54,6 @@ export class FilterManager {
             ungroupedSection.style.display = visibleUngrouped.length > 0 ? 'block' : 'none';
         }
         
-        // Mostrar mensaje si no hay resultados
         if (visibleCount === 0 && this.audioManager.audioElements.length > 0) {
             this.audioManager.showEmptyState('No se encontraron audios con los filtros aplicados');
         } else if (this.audioManager.audioElements.length > 0) {
