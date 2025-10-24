@@ -140,13 +140,13 @@ body {
 }
 
 .btn-mute.active {
-    background-color: #6b7280;
+    background-color: #ff0909;
     color: white;
     box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.3);
 }
 
 .btn-group-control[data-action="mute"].active {
-    background-color: #6b7280;
+    background-color: #ff0909;
     color: white;
 }
 

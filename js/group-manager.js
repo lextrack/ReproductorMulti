@@ -1,0 +1,332 @@
+import { Utils } from './utils.js';
+
+export class GroupManager {
+    constructor(audioManager) {
+        this.audioManager = audioManager;
+        this.groups = [];
+        this.groupId = 0;
+    }
+
+    createGroup(name) {
+        if (!name) {
+            Utils.showAlert('Ingresa un nombre para el grupo', 'warning');
+            return null;
+        }
+
+        const group = {
+            id: this.groupId++,
+            name: name,
+            collapsed: false,
+            color: Utils.generateSoftColor()
+        };
+
+        this.groups.push(group);
+        this.renderGroupTag(group);
+        this.renderGroupSection(group);
+        this.updateAllGroupSelectors();
+        Utils.showAlert(`Grupo "${name}" creado`, 'success');
+        
+        return group;
+    }
+
+    deleteGroup(groupId) {
+        const group = this.groups.find(g => g.id === groupId);
+        if (!group) return;
+
+        const audiosInGroup = this.audioManager.audioElements.filter(a => a.groupId === groupId);
+        
+        if (audiosInGroup.length > 0) {
+            if (!confirm(`¿Eliminar el grupo "${group.name}"? Los ${audiosInGroup.length} audio(s) se moverán a "Sin grupo"`)) {
+                return;
+            }
+            
+            audiosInGroup.forEach(audio => {
+                audio.groupId = null;
+                const audioElement = document.getElementById(`audio-item-${audio.id}`);
+                if (audioElement) {
+                    audioElement.remove();
+                    this.audioManager.renderAudioItem(audio);
+                }
+            });
+        }
+
+        this.groups = this.groups.filter(g => g.id !== groupId);
+        
+        const tagElement = document.querySelector(`[data-group-id="${groupId}"]`);
+        if (tagElement) tagElement.remove();
+        
+        const sectionElement = document.getElementById(`group-section-${groupId}`);
+        if (sectionElement) sectionElement.remove();
+        
+        this.updateAllGroupSelectors();
+        this.audioManager.updateUngroupedCount();
+        Utils.showAlert(`Grupo "${group.name}" eliminado. Audios movidos a "Sin grupo"`, 'info');
+    }
+
+    renderGroupTag(group) {
+        const container = document.getElementById('groupsList');
+        const tag = document.createElement('div');
+        tag.className = 'group-tag';
+        tag.dataset.groupId = group.id;
+        tag.style.background = group.color;
+        tag.style.color = '#333';
+        
+        const audioCount = this.audioManager.audioElements.filter(a => a.groupId === group.id).length;
+        
+        tag.innerHTML = `
+            <i class="bi bi-folder"></i>
+            <span>${Utils.escapeHtml(group.name)}</span>
+            <span class="group-count">${audioCount}</span>
+            <button class="btn-delete-group" title="Eliminar grupo">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        `;
+        
+        tag.querySelector('.btn-delete-group').addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.deleteGroup(group.id);
+        });
+        
+        container.appendChild(tag);
+    }
+
+    renderAllGroups() {
+        const container = document.getElementById('groupsList');
+        container.innerHTML = '';
+        this.groups.forEach(group => this.renderGroupTag(group));
+    }
+
+    updateGroupCount(groupId) {
+        const tag = document.querySelector(`[data-group-id="${groupId}"]`);
+        if (tag) {
+            const count = this.audioManager.audioElements.filter(a => a.groupId === groupId).length;
+            const countSpan = tag.querySelector('.group-count');
+            if (countSpan) countSpan.textContent = count;
+        }
+
+        const badge = document.getElementById(`group-badge-${groupId}`);
+        if (badge) {
+            const count = this.audioManager.audioElements.filter(a => a.groupId === groupId).length;
+            badge.textContent = `${count} audio(s)`;
+        }
+    }
+
+    renderGroupSection(group) {
+        const list = document.getElementById('audioList');
+        
+        let section = document.getElementById(`group-section-${group.id}`);
+        if (section) return;
+        
+        section = document.createElement('div');
+        section.className = 'group-section';
+        section.id = `group-section-${group.id}`;
+        
+        const darkerColor = Utils.generateDarkerShade(group.color);
+        
+        section.innerHTML = `
+            <div class="group-header ${group.collapsed ? 'collapsed' : ''}" data-group-id="${group.id}" style="background: linear-gradient(135deg, ${group.color} 0%, ${darkerColor} 100%);">
+                <div class="group-header-left">
+                    <i class="bi bi-chevron-down group-collapse-icon" style="color: #333;"></i>
+                    <h5 class="group-title" style="color: #333;">
+                        <i class="bi bi-folder"></i>
+                        ${Utils.escapeHtml(group.name)}
+                    </h5>
+                </div>
+                <div class="group-info">
+                    <span class="badge bg-dark group-badge" id="group-badge-${group.id}">0 audio(s)</span>
+                    <div class="group-controls">
+                        <button class="btn btn-success btn-small btn-group-control" data-action="play">
+                            <i class="bi bi-play-fill"></i>
+                        </button>
+                        <button class="btn btn-warning btn-small btn-group-control" data-action="pause">
+                            <i class="bi bi-pause-fill"></i>
+                        </button>
+                        <button class="btn btn-danger btn-small btn-group-control" data-action="stop">
+                            <i class="bi bi-stop-fill"></i>
+                        </button>
+                        <button class="btn btn-secondary btn-small btn-group-control" data-action="mute" title="Mute">
+                            <i class="bi bi-volume-mute"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="group-content ${group.collapsed ? 'collapsed' : ''}" id="group-content-${group.id}" style="background: ${group.color};">
+            </div>
+        `;
+        
+        const header = section.querySelector('.group-header');
+        header.addEventListener('click', (e) => {
+            if (e.target.closest('.btn-group-control')) return;
+            this.toggleGroupCollapse(group.id);
+        });
+        
+        section.querySelectorAll('.btn-group-control').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const action = btn.dataset.action;
+                this.groupAction(group.id, action);
+            });
+        });
+        
+        const ungroupedSection = document.getElementById('ungrouped-section');
+        if (ungroupedSection) {
+            list.insertBefore(section, ungroupedSection);
+        } else {
+            list.appendChild(section);
+        }
+    }
+
+    toggleGroupCollapse(groupId) {
+        const group = this.groups.find(g => g.id === groupId);
+        if (!group) return;
+        
+        group.collapsed = !group.collapsed;
+        
+        const header = document.querySelector(`.group-header[data-group-id="${groupId}"]`);
+        const content = document.getElementById(`group-content-${groupId}`);
+        
+        if (header && content) {
+            if (group.collapsed) {
+                header.classList.add('collapsed');
+                content.classList.add('collapsed');
+            } else {
+                header.classList.remove('collapsed');
+                content.classList.remove('collapsed');
+            }
+        }
+    }
+
+    groupAction(groupId, action) {
+        const audios = this.audioManager.audioElements.filter(a => a.groupId === groupId);
+        
+        switch(action) {
+            case 'play':
+                audios.forEach(audio => this.audioManager.audioPlayer.playSingle(audio.id));
+                break;
+            case 'pause':
+                audios.forEach(audio => this.audioManager.audioPlayer.pauseSingle(audio.id));
+                break;
+            case 'stop':
+                audios.forEach(audio => {
+                    this.audioManager.audioPlayer.pauseSingle(audio.id);
+                    audio.audio.currentTime = 0;
+                });
+                break;
+            case 'mute':
+                this.toggleGroupMute(groupId);
+                break;
+        }
+    }
+
+    toggleGroupMute(groupId) {
+        const audios = this.audioManager.audioElements.filter(a => a.groupId === groupId);
+        const groupBtn = document.querySelector(`.group-header[data-group-id="${groupId}"] .btn-group-control[data-action="mute"]`);
+        
+        const allMuted = audios.every(a => a.isMuted);
+        
+        audios.forEach(a => {
+            a.isMuted = !allMuted;
+            const btn = document.querySelector(`.btn-mute[data-id="${a.id}"]`);
+            if (btn) {
+                if (a.isMuted) {
+                    btn.classList.add('active');
+                    btn.innerHTML = '<i class="bi bi-volume-mute-fill"></i>';
+                } else {
+                    btn.classList.remove('active');
+                    btn.innerHTML = '<i class="bi bi-volume-mute"></i>';
+                }
+            }
+        });
+
+        if (!allMuted) {
+            groupBtn?.classList.add('active');
+        } else {
+            groupBtn?.classList.remove('active');
+        }
+
+        this.audioManager.applyMute();
+        this.audioManager.updateHistory();
+    }
+
+    playGroupAudios(groupId) {
+        const audiosInGroup = this.audioManager.audioElements.filter(a => a.groupId === groupId);
+        audiosInGroup.forEach(audio => {
+            if (audio.audio.paused) {
+                this.audioManager.audioPlayer.playSingle(audio.id);
+            }
+        });
+    }
+
+    pauseGroupAudios(groupId) {
+        const audiosInGroup = this.audioManager.audioElements.filter(a => a.groupId === groupId);
+        audiosInGroup.forEach(audio => {
+            if (!audio.audio.paused) {
+                this.audioManager.audioPlayer.pauseSingle(audio.id);
+            }
+        });
+    }
+
+    stopGroupAudios(groupId) {
+        const audiosInGroup = this.audioManager.audioElements.filter(a => a.groupId === groupId);
+        audiosInGroup.forEach(audio => {
+            this.audioManager.stopAudio(audio.id);
+        });
+    }
+
+    updateAllGroupSelectors() {
+        this.audioManager.audioElements.forEach(item => {
+            let selector = document.querySelector(`.group-selector[data-id="${item.id}"]`);
+            
+            if (!selector) {
+                const audioControls = document.querySelector(`#audio-item-${item.id} .audio-controls`);
+                if (audioControls) {
+                    const selectorDiv = document.createElement('div');
+                    selectorDiv.className = 'audio-group-selector';
+                    selectorDiv.innerHTML = `
+                        <i class="bi bi-folder"></i>
+                        <select class="group-selector" data-id="${item.id}">
+                            <option value="">Sin grupo</option>
+                        </select>
+                    `;
+                    audioControls.appendChild(selectorDiv);
+                    selector = selectorDiv.querySelector('.group-selector');
+                    selector.addEventListener('change', (e) => this.audioManager.changeAudioGroup(item.id, e.target.value));
+                }
+            }
+            
+            if (selector) {
+                const currentValue = selector.value;
+                const groupOptions = this.groups.map(g => 
+                    `<option value="${g.id}" ${item.groupId == g.id ? 'selected' : ''}>${Utils.escapeHtml(g.name)}</option>`
+                ).join('');
+                
+                selector.innerHTML = `
+                    <option value="">Sin grupo</option>
+                    ${groupOptions}
+                `;
+                selector.value = currentValue;
+            }
+        });
+    }
+
+    getGroup(groupId) {
+        return this.groups.find(g => g.id === groupId);
+    }
+
+    getAllGroups() {
+        return this.groups;
+    }
+
+    reset() {
+        this.groups.forEach(g => {
+            const tagElement = document.querySelector(`[data-group-id="${g.id}"]`);
+            if (tagElement) tagElement.remove();
+            
+            const sectionElement = document.getElementById(`group-section-${g.id}`);
+            if (sectionElement) sectionElement.remove();
+        });
+
+        this.groups = [];
+        this.groupId = 0;
+    }
+}
