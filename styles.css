@@ -41,9 +41,13 @@ body {
     bottom: 20px;
     right: 20px;
     z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
-.github-link {
+.github-link,
+.scroll-top-btn {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -55,16 +59,31 @@ body {
     transition: all 0.3s ease;
     text-decoration: none;
     color: #333;
+    border: none;
+    cursor: pointer;
 }
 
-.github-link:hover {
+.github-link:hover,
+.scroll-top-btn:hover {
     transform: translateY(-3px) scale(1.05);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
     color: var(--primary-color);
 }
 
-.github-link i {
+.github-link i,
+.scroll-top-btn i {
     font-size: 1.5rem;
+}
+
+.scroll-top-btn {
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.scroll-top-btn.visible {
+    opacity: 1;
+    visibility: visible;
 }
 
 .backup-status {
