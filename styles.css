@@ -150,6 +150,45 @@ body {
     color: white;
 }
 
+.btn-group-control[data-action="playlist"].active {
+    background-color: var(--info-dark);
+    color: white;
+    box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.3);
+}
+
+.btn-group-control[data-action="playlist-loop"].active {
+    background-color: var(--purple-dark);
+    color: white;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.3);
+}
+
+.playlist-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.6rem;
+    background: rgba(6, 182, 212, 0.2);
+    color: #333;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-left: 0.5rem;
+    animation: playlistPulse 2s ease-in-out infinite;
+}
+
+.playlist-indicator i {
+    font-size: 0.9rem;
+}
+
+@keyframes playlistPulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
 .group-management {
     padding: 1rem;
     background: #f8f9fa;
@@ -250,6 +289,20 @@ body {
 
 .group-header:hover {
     filter: brightness(0.95);
+}
+
+.group-header.highlight-group {
+    animation: highlightGroupPulse 1.5s ease;
+}
+
+@keyframes highlightGroupPulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+    }
+    50% {
+        box-shadow: 0 0 20px 5px var(--primary-color);
+        transform: scale(1.01);
+    }
 }
 
 .group-header-left {

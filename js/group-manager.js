@@ -17,7 +17,9 @@ export class GroupManager {
             id: this.groupId++,
             name: name,
             collapsed: false,
-            color: Utils.generateSoftColor()
+            color: Utils.generateSoftColor(),
+            playlistMode: 'none',
+            currentPlayingIndex: -1
         };
 
         this.groups.push(group);
@@ -86,8 +88,36 @@ export class GroupManager {
             e.stopPropagation();
             this.deleteGroup(group.id);
         });
+
+        tag.addEventListener('click', (e) => {
+            if (!e.target.closest('.btn-delete-group')) {
+                this.scrollToGroup(group.id);
+            }
+        });
         
         container.appendChild(tag);
+    }
+
+    scrollToGroup(groupId) {
+        const groupSection = document.getElementById(`group-section-${groupId}`);
+        if (groupSection) {
+            const rect = groupSection.getBoundingClientRect();
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            const targetPosition = rect.top + scrollTop - (window.innerHeight / 2) + (rect.height / 2);
+            
+            window.scrollTo({
+                top: targetPosition,
+                behavior: 'smooth'
+            });
+            
+            const groupHeader = groupSection.querySelector('.group-header');
+            if (groupHeader) {
+                groupHeader.classList.add('highlight-group');
+                setTimeout(() => {
+                    groupHeader.classList.remove('highlight-group');
+                }, 1500);
+            }
+        }
     }
 
     renderAllGroups() {
@@ -131,6 +161,9 @@ export class GroupManager {
                         <i class="bi bi-folder"></i>
                         ${Utils.escapeHtml(group.name)}
                     </h5>
+                    <span class="playlist-indicator" id="playlist-indicator-${group.id}" style="display: none;">
+                        <i class="bi bi-music-note-list"></i>
+                    </span>
                 </div>
                 <div class="group-info">
                     <span class="badge bg-dark group-badge" id="group-badge-${group.id}">0 audio(s)</span>
@@ -146,6 +179,12 @@ export class GroupManager {
                         </button>
                         <button class="btn btn-secondary btn-small btn-group-control" data-action="mute" title="Mute">
                             <i class="bi bi-volume-mute"></i>
+                        </button>
+                        <button class="btn btn-info btn-small btn-group-control" data-action="playlist" title="Reproducción continua">
+                            <i class="bi bi-skip-forward-fill"></i>
+                        </button>
+                        <button class="btn btn-purple btn-small btn-group-control" data-action="playlist-loop" title="Reproducción continua en bucle">
+                            <i class="bi bi-arrow-repeat"></i>
                         </button>
                     </div>
                 </div>
@@ -198,6 +237,7 @@ export class GroupManager {
 
     groupAction(groupId, action) {
         const audios = this.audioManager.audioElements.filter(a => a.groupId === groupId);
+        const group = this.groups.find(g => g.id === groupId);
         
         switch(action) {
             case 'play':
@@ -207,6 +247,7 @@ export class GroupManager {
                 audios.forEach(audio => this.audioManager.audioPlayer.pauseSingle(audio.id));
                 break;
             case 'stop':
+                this.stopPlaylist(groupId);
                 audios.forEach(audio => {
                     this.audioManager.audioPlayer.pauseSingle(audio.id);
                     audio.audio.currentTime = 0;
@@ -215,6 +256,168 @@ export class GroupManager {
             case 'mute':
                 this.toggleGroupMute(groupId);
                 break;
+            case 'playlist':
+                this.togglePlaylistMode(groupId, 'continuous');
+                break;
+            case 'playlist-loop':
+                this.togglePlaylistMode(groupId, 'loop');
+                break;
+        }
+    }
+
+    togglePlaylistMode(groupId, mode) {
+        const group = this.groups.find(g => g.id === groupId);
+        if (!group) return;
+
+        const playlistBtn = document.querySelector(`.group-header[data-group-id="${groupId}"] .btn-group-control[data-action="playlist"]`);
+        const loopBtn = document.querySelector(`.group-header[data-group-id="${groupId}"] .btn-group-control[data-action="playlist-loop"]`);
+        const indicator = document.getElementById(`playlist-indicator-${groupId}`);
+
+        if (group.playlistMode === mode) {
+            this.stopPlaylist(groupId);
+        } else {
+            group.playlistMode = mode;
+            group.currentPlayingIndex = -1;
+
+            playlistBtn?.classList.remove('active');
+            loopBtn?.classList.remove('active');
+
+            if (mode === 'continuous') {
+                playlistBtn?.classList.add('active');
+                indicator.style.display = 'inline-flex';
+                indicator.innerHTML = '<i class="bi bi-skip-forward-fill"></i>';
+                indicator.title = 'Reproducción continua activa';
+                Utils.showAlert('Modo reproducción continua activado', 'info');
+            } else if (mode === 'loop') {
+                loopBtn?.classList.add('active');
+                indicator.style.display = 'inline-flex';
+                indicator.innerHTML = '<i class="bi bi-arrow-repeat"></i>';
+                indicator.title = 'Reproducción continua en bucle activa';
+                Utils.showAlert('Modo reproducción continua en bucle activado', 'info');
+            }
+
+            this.startPlaylist(groupId);
+        }
+    }
+
+    startPlaylist(groupId) {
+        const group = this.groups.find(g => g.id === groupId);
+        if (!group || group.playlistMode === 'none') return;
+
+        const audios = this.audioManager.audioElements.filter(a => a.groupId === groupId);
+        if (audios.length === 0) return;
+
+        audios.forEach(audio => {
+            audio.audio.removeEventListener('ended', audio._playlistEndedHandler);
+            
+            if (audio.audio.loop) {
+                audio._wasLooping = true;
+                audio.audio.loop = false;
+                audio.element.loop = false;
+                
+                const loopCheckbox = document.getElementById(`loop-${audio.id}`);
+                const loopContainer = document.getElementById(`loop-container-${audio.id}`);
+                if (loopCheckbox) {
+                    loopCheckbox.checked = false;
+                    if (loopContainer) {
+                        loopContainer.style.background = '#bbb7b773';
+                        loopContainer.style.borderLeft = 'none';
+                    }
+                }
+            } else {
+                audio._wasLooping = false;
+            }
+        });
+
+        audios.forEach((audio, index) => {
+            audio._playlistEndedHandler = () => this.handlePlaylistAudioEnded(groupId, index);
+            audio.audio.addEventListener('ended', audio._playlistEndedHandler);
+        });
+
+        audios.forEach(audio => {
+            audio.audio.loop = false;
+            audio.element.loop = false;
+        });
+
+        group.currentPlayingIndex = 0;
+        this.audioManager.audioPlayer.playSingle(audios[0].id);
+    }
+
+    handlePlaylistAudioEnded(groupId, audioIndex) {
+        const group = this.groups.find(g => g.id === groupId);
+        if (!group || group.playlistMode === 'none') return;
+
+        const audios = this.audioManager.audioElements.filter(a => a.groupId === groupId);
+        const currentAudio = audios[audioIndex];
+        
+        if (currentAudio && currentAudio.audio.loop) {
+            currentAudio.audio.loop = false;
+        }
+        
+        const nextIndex = audioIndex + 1;
+
+        if (nextIndex < audios.length) {
+            group.currentPlayingIndex = nextIndex;
+            setTimeout(() => {
+                if (audios[nextIndex].audio.loop) {
+                    audios[nextIndex].audio.loop = false;
+                }
+                this.audioManager.audioPlayer.playSingle(audios[nextIndex].id);
+            }, 300);
+        } else {
+            if (group.playlistMode === 'loop') {
+                group.currentPlayingIndex = 0;
+                setTimeout(() => {
+                    if (audios[0].audio.loop) {
+                        audios[0].audio.loop = false;
+                    }
+                    this.audioManager.audioPlayer.playSingle(audios[0].id);
+                }, 300);
+            } else {
+                this.stopPlaylist(groupId);
+                Utils.showAlert('Lista de reproducción finalizada', 'success');
+            }
+        }
+    }
+
+    stopPlaylist(groupId) {
+        const group = this.groups.find(g => g.id === groupId);
+        if (!group) return;
+
+        group.playlistMode = 'none';
+        group.currentPlayingIndex = -1;
+
+        const audios = this.audioManager.audioElements.filter(a => a.groupId === groupId);
+        audios.forEach(audio => {
+            if (audio._playlistEndedHandler) {
+                audio.audio.removeEventListener('ended', audio._playlistEndedHandler);
+                delete audio._playlistEndedHandler;
+            }
+            
+            if (audio._wasLooping) {
+                audio.audio.loop = true;
+                
+                const loopCheckbox = document.getElementById(`loop-${audio.id}`);
+                const loopContainer = document.getElementById(`loop-container-${audio.id}`);
+                if (loopCheckbox) {
+                    loopCheckbox.checked = true;
+                    if (loopContainer) {
+                        loopContainer.style.background = 'rgba(139, 92, 246, 0.1)';
+                        loopContainer.style.borderLeft = '3px solid var(--purple-color)';
+                    }
+                }
+                delete audio._wasLooping;
+            }
+        });
+
+        const playlistBtn = document.querySelector(`.group-header[data-group-id="${groupId}"] .btn-group-control[data-action="playlist"]`);
+        const loopBtn = document.querySelector(`.group-header[data-group-id="${groupId}"] .btn-group-control[data-action="playlist-loop"]`);
+        const indicator = document.getElementById(`playlist-indicator-${groupId}`);
+
+        playlistBtn?.classList.remove('active');
+        loopBtn?.classList.remove('active');
+        if (indicator) {
+            indicator.style.display = 'none';
         }
     }
 
