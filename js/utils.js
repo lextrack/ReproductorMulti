@@ -1,8 +1,29 @@
 export class Utils {
     static generateSoftColor() {
-        const hue = Math.floor(Math.random() * 360);
-        const saturation = 65 + Math.floor(Math.random() * 20);
-        const lightness = 85 + Math.floor(Math.random() * 10);
+        const colorPalettes = [
+            { hue: 200, satRange: [60, 75], lightRange: [80, 90] },
+            { hue: 150, satRange: [55, 70], lightRange: [82, 92] },
+            { hue: 280, satRange: [50, 65], lightRange: [85, 93] },
+            { hue: 30, satRange: [65, 80], lightRange: [80, 88] },
+            { hue: 340, satRange: [60, 75], lightRange: [85, 92] },
+            { hue: 180, satRange: [55, 70], lightRange: [83, 91] },
+            { hue: 50, satRange: [70, 85], lightRange: [78, 86] },
+            { hue: 260, satRange: [50, 65], lightRange: [84, 92] },
+            { hue: 90, satRange: [60, 75], lightRange: [81, 89] },
+            { hue: 320, satRange: [55, 70], lightRange: [86, 93] },
+            { hue: 170, satRange: [60, 75], lightRange: [82, 90] },
+            { hue: 40, satRange: [65, 80], lightRange: [79, 87] },
+            { hue: 210, satRange: [55, 70], lightRange: [84, 92] },
+            { hue: 300, satRange: [50, 65], lightRange: [85, 91] },
+            { hue: 120, satRange: [60, 75], lightRange: [80, 88] }
+        ];
+        
+        const palette = colorPalettes[Math.floor(Math.random() * colorPalettes.length)];
+        const hueVariation = Math.floor(Math.random() * 20) - 10;
+        const hue = (palette.hue + hueVariation) % 360;
+        const saturation = palette.satRange[0] + Math.floor(Math.random() * (palette.satRange[1] - palette.satRange[0]));
+        const lightness = palette.lightRange[0] + Math.floor(Math.random() * (palette.lightRange[1] - palette.lightRange[0]));
+        
         return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
     }
 

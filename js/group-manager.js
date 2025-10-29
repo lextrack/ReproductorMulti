@@ -276,6 +276,13 @@ export class GroupManager {
         if (group.playlistMode === mode) {
             this.stopPlaylist(groupId);
         } else {
+            const audios = this.audioManager.audioElements.filter(a => a.groupId === groupId);
+            
+            audios.forEach(audio => {
+                audio.audio.pause();
+                audio.audio.currentTime = 0;
+            });
+
             group.playlistMode = mode;
             group.currentPlayingIndex = -1;
 
