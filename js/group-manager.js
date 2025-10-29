@@ -168,20 +168,20 @@ export class GroupManager {
                 <div class="group-info">
                     <span class="badge bg-dark group-badge" id="group-badge-${group.id}">0 audio(s)</span>
                     <div class="group-controls">
-                        <button class="btn btn-success btn-small btn-group-control" data-action="play">
+                        <button class="btn btn-success btn-small btn-group-control" data-action="play" title="Reproduce todos los audios">
                             <i class="bi bi-play-fill"></i>
                         </button>
-                        <button class="btn btn-warning btn-small btn-group-control" data-action="pause">
+                        <button class="btn btn-warning btn-small btn-group-control" data-action="pause" title="Pausa todos los audios">
                             <i class="bi bi-pause-fill"></i>
                         </button>
-                        <button class="btn btn-danger btn-small btn-group-control" data-action="stop">
+                        <button class="btn btn-danger btn-small btn-group-control" data-action="stop" title="Detiene todos los audios">
                             <i class="bi bi-stop-fill"></i>
                         </button>
-                        <button class="btn btn-secondary btn-small btn-group-control" data-action="mute" title="Mute">
+                        <button class="btn btn-secondary btn-small btn-group-control" data-action="mute" title="Silencia todos los audios">
                             <i class="bi bi-volume-mute"></i>
                         </button>
                         <button class="btn btn-info btn-small btn-group-control" data-action="playlist" title="Reproducción continua">
-                            <i class="bi bi-skip-forward-fill"></i>
+                            <i class="bi bi-bar-chart-steps"></i>
                         </button>
                         <button class="btn btn-purple btn-small btn-group-control" data-action="playlist-loop" title="Reproducción continua en bucle">
                             <i class="bi bi-arrow-repeat"></i>
@@ -292,7 +292,7 @@ export class GroupManager {
             if (mode === 'continuous') {
                 playlistBtn?.classList.add('active');
                 indicator.style.display = 'inline-flex';
-                indicator.innerHTML = '<i class="bi bi-skip-forward-fill"></i>';
+                indicator.innerHTML = '<i class="bi bi-bar-chart-steps"></i>';
                 indicator.title = 'Reproducción continua activa';
                 Utils.showAlert('Modo reproducción continua activado', 'info');
             } else if (mode === 'loop') {
