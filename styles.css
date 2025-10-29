@@ -760,8 +760,8 @@ input[type="file"]:hover {
     font-size: 0.85rem;
     border-radius: 20px;
     border: 2px solid transparent;
-    background: #f1f5f9;
-    color: #64748b;
+    background: #d1d5db;
+    color: #374151;
     transition: all 0.3s ease;
     cursor: pointer;
     font-weight: 600;
@@ -771,7 +771,8 @@ input[type="file"]:hover {
 }
 
 .filter-btn:hover {
-    background: #e2e8f0;
+    background: #9ca3af;
+    color: #1f2937;
     transform: translateY(-1px);
 }
 
