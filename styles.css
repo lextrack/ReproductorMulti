@@ -184,19 +184,19 @@ body {
 .playlist-indicator {
     display: inline-flex;
     align-items: center;
-    gap: 0.3rem;
-    padding: 0.25rem 0.6rem;
+    gap: 0.25rem;
+    padding: 0.2rem 0.5rem;
     background: rgba(6, 182, 212, 0.2);
     color: #333;
-    border-radius: 12px;
-    font-size: 0.8rem;
+    border-radius: 10px;
+    font-size: 0.75rem;
     font-weight: 600;
-    margin-left: 0.5rem;
+    margin-left: 0.4rem;
     animation: playlistPulse 2s ease-in-out infinite;
 }
 
 .playlist-indicator i {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
 }
 
 @keyframes playlistPulse {
@@ -208,18 +208,39 @@ body {
     }
 }
 
-.group-management {
-    padding: 1rem;
+.add-audio-section,
+.group-management,
+.backup-section,
+.global-controls-section,
+.search-section-wrapper,
+.filter-section-wrapper {
+    padding: 0.75rem;
     background: #f8f9fa;
     border-radius: 8px;
+}
+
+.add-audio-section {
+    border-left: 4px solid var(--success-color);
+}
+
+.group-management {
     border-left: 4px solid var(--primary-color);
 }
 
 .backup-section {
-    padding: 1rem;
-    background: #fff3cd;
-    border-radius: 8px;
     border-left: 4px solid var(--warning-color);
+}
+
+.global-controls-section {
+    border-left: 4px solid var(--purple-color);
+}
+
+.search-section-wrapper {
+    border-left: 4px solid var(--info-color);
+}
+
+.filter-section-wrapper {
+    border-left: 4px solid #e91e63;
 }
 
 .groups-container {
@@ -286,18 +307,19 @@ body {
 
 .group-section {
     background: white;
-    border-radius: 12px;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
     overflow: hidden;
     transition: all 0.3s ease;
+    margin-bottom: 0.75rem;
 }
 
 .group-section:hover {
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
 }
 
 .group-header {
-    padding: 1rem 1.25rem;
+    padding: 0.65rem 1rem;
     border-bottom: 2px solid rgba(0, 0, 0, 0.1);
     display: flex;
     justify-content: space-between;
@@ -327,12 +349,12 @@ body {
 .group-header-left {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.6rem;
     flex: 1;
 }
 
 .group-collapse-icon {
-    font-size: 1.2rem;
+    font-size: 1rem;
     color: var(--primary-color);
     transition: transform 0.3s ease;
 }
@@ -342,7 +364,7 @@ body {
 }
 
 .group-title {
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: 700;
     color: #333;
     margin: 0;
@@ -351,35 +373,35 @@ body {
 .group-info {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.4rem;
 }
 
 .group-badge {
-    font-size: 0.75rem;
-    padding: 0.25rem 0.6rem;
-    border-radius: 12px;
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 10px;
     font-weight: 600;
 }
 
 .group-controls {
     display: flex;
-    gap: 0.4rem;
-}
-
-.btn-group-control {
-    padding: 0.35rem 0.6rem;
-    font-size: 0.8rem;
-    border-radius: 6px;
-    display: inline-flex;
-    align-items: center;
     gap: 0.3rem;
 }
 
+.btn-group-control {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.75rem;
+    border-radius: 5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+}
+
 .group-content {
-    padding: 1rem;
+    padding: 0.75rem;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.6rem;
     background: #fafbfc;
 }
 
@@ -389,8 +411,8 @@ body {
 
 .audio-item {
     background: white;
-    border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
     transition: all 0.3s ease;
     border-left: 4px solid transparent;
     scroll-margin-top: 20px;
@@ -441,21 +463,21 @@ body {
 }
 
 .audio-item .card-body {
-    padding: 0.75rem 1rem;
+    padding: 0.6rem 0.8rem;
 }
 
 .audio-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.6rem;
-    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    gap: 0.4rem;
 }
 
 .audio-name {
     font-weight: 600;
     color: #333;
-    font-size: 0.95em;
+    font-size: 0.9em;
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -464,31 +486,31 @@ body {
 
 .audio-status {
     display: flex;
-    gap: 0.4rem;
+    gap: 0.3rem;
     align-items: center;
     flex-shrink: 0;
 }
 
 .audio-time {
-    font-size: 0.75em;
+    font-size: 0.7em;
     color: #666;
-    padding: 0.2rem 0.4rem;
+    padding: 0.15rem 0.35rem;
 }
 
 .status-badge {
-    font-size: 0.7rem;
-    padding: 0.2rem 0.45rem;
-    border-radius: 10px;
+    font-size: 0.65rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: 8px;
     font-weight: 600;
     display: inline-flex;
     align-items: center;
-    gap: 0.2rem;
+    gap: 0.15rem;
     animation: fadeIn 0.3s ease;
     color: white !important;
 }
 
 .status-badge i {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: white !important;
 }
 
@@ -537,33 +559,33 @@ body {
 
 .audio-controls {
     display: flex;
-    gap: 0.4rem;
+    gap: 0.3rem;
     align-items: center;
     flex-wrap: wrap;
-    margin-bottom: 0.6rem;
+    margin-bottom: 0.5rem;
 }
 
 .btn-small {
-    padding: 0.35rem 0.65rem;
-    font-size: 0.85rem;
-    border-radius: 6px;
+    padding: 0.3rem 0.55rem;
+    font-size: 0.8rem;
+    border-radius: 5px;
     display: inline-flex;
     align-items: center;
-    gap: 0.2rem;
-    min-width: 36px;
+    gap: 0.15rem;
+    min-width: 32px;
     justify-content: center;
 }
 
 .audio-group-selector {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.3rem;
 }
 
 .audio-group-selector select {
-    font-size: 0.8rem;
-    padding: 0.3rem 0.5rem;
-    border-radius: 6px;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.4rem;
+    border-radius: 5px;
     border: 1px solid #dee2e6;
     cursor: pointer;
     background-color: white;
@@ -572,10 +594,10 @@ body {
 .loop-toggle {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
-    padding: 0.35rem 0.65rem;
+    gap: 0.3rem;
+    padding: 0.3rem 0.55rem;
     background: #bbb7b773;
-    border-radius: 6px;
+    border-radius: 5px;
     cursor: pointer;
     transition: all 0.2s;
 }
@@ -585,8 +607,8 @@ body {
 }
 
 .loop-toggle input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     cursor: pointer;
 }
 
@@ -595,18 +617,18 @@ body {
     user-select: none;
     color: #464545;
     margin: 0;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     display: flex;
     align-items: center;
-    gap: 0.2rem;
+    gap: 0.15rem;
 }
 
 .progress-container {
-    margin: 0.6rem 0;
+    margin: 0.5rem 0;
 }
 
 .progress {
-    height: 6px;
+    height: 5px;
     cursor: pointer;
     border-radius: 3px;
     overflow: visible;
@@ -622,27 +644,27 @@ body {
 .progress-bar::after {
     content: '';
     position: absolute;
-    right: -3px;
+    right: -2px;
     top: 50%;
     transform: translateY(-50%);
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
     background: var(--primary-color);
     border-radius: 50%;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .volume-control {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
-    padding: 0.5rem 0.75rem;
+    gap: 0.5rem;
+    padding: 0.4rem 0.6rem;
     background: #bbb7b773;
-    border-radius: 6px;
+    border-radius: 5px;
 }
 
 .volume-label {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: #414040;
     font-weight: 500;
     min-width: auto;
@@ -651,15 +673,15 @@ body {
 .volume-slider {
     flex: 1;
     cursor: pointer;
-    height: 5px;
+    height: 4px;
     border-radius: 3px;
 }
 
 .volume-display {
     font-weight: 600;
-    min-width: 45px;
+    min-width: 40px;
     text-align: right;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
 }
 
 .volume-display.boosted {
