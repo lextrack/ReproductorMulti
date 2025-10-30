@@ -11,6 +11,7 @@ export class AudioManager {
         this.audioElements = [];
         this.audioId = 0;
         this.audioContext = null;
+        this.masterGainNode = null;
         this.playingCount = 0;
         
         this.groupManager = new GroupManager(this);
@@ -22,15 +23,32 @@ export class AudioManager {
         this.initAudioContext();
         this.setupEventListeners();
         this.setupKeyboardShortcuts();
+        this.setupMasterVolume();
         this.uiRenderer.hideEmptyState();
     }
 
     initAudioContext() {
         try {
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            this.masterGainNode = this.audioContext.createGain();
+            this.masterGainNode.connect(this.audioContext.destination);
+            this.masterGainNode.gain.value = 1.0;
         } catch (e) {
             console.error('Web Audio API no soportada:', e);
             Utils.showAlert('Tu navegador no soporta Web Audio API', 'danger');
+        }
+    }
+
+    setupMasterVolume() {
+        const masterSlider = document.getElementById('masterVolumeSlider');
+        const masterDisplay = document.getElementById('masterVolumeDisplay');
+        
+        if (masterSlider && masterDisplay) {
+            masterSlider.addEventListener('input', (e) => {
+                const value = parseFloat(e.target.value);
+                this.masterGainNode.gain.value = value / 100;
+                masterDisplay.textContent = `${value}%`;
+            });
         }
     }
 
@@ -88,7 +106,7 @@ export class AudioManager {
             const gainNode = this.audioContext.createGain();
             
             source.connect(gainNode);
-            gainNode.connect(this.audioContext.destination);
+            gainNode.connect(this.masterGainNode);
             
             const audioItem = {
                 id: id,

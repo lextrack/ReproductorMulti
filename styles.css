@@ -44,6 +44,102 @@ body {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    align-items: flex-end;
+}
+
+.footer-bottom-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.master-volume-control {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    transition: all 0.3s ease;
+}
+
+.master-volume-control:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.master-volume-control > i {
+    color: var(--primary-color);
+    font-size: 1.2rem;
+    margin: 0;
+}
+
+.master-volume-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100px;
+    height: 6px;
+    border-radius: 3px;
+    cursor: pointer;
+    outline: none;
+    background: #ddd;
+}
+
+.master-volume-slider::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 6px;
+    background: #ddd;
+    border-radius: 3px;
+}
+
+.master-volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+    margin-top: -5px;
+}
+
+.master-volume-slider::-webkit-slider-thumb:hover {
+    background: var(--primary-dark);
+    transform: scale(1.15);
+}
+
+.master-volume-slider::-moz-range-track {
+    width: 100%;
+    height: 6px;
+    background: #ddd;
+    border-radius: 3px;
+}
+
+.master-volume-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+}
+
+.master-volume-slider::-moz-range-thumb:hover {
+    background: var(--primary-dark);
+    transform: scale(1.15);
+}
+
+.master-volume-display {
+    font-weight: 700;
+    color: var(--primary-color);
+    font-size: 0.75rem;
+    min-width: 38px;
+    text-align: right;
 }
 
 .github-link,
@@ -813,7 +909,7 @@ input[type="file"]:hover {
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
     position: sticky;
     top: 20px;
-    max-height: calc(100vh - 140px);
+    max-height: calc(100vh - 160px);
     display: flex;
     flex-direction: column;
 }
@@ -974,5 +1070,10 @@ input[type="file"]:hover {
     .group-info {
         width: 100%;
         justify-content: space-between;
+    }
+
+    .github-footer {
+        bottom: 10px;
+        right: 10px;
     }
 }
