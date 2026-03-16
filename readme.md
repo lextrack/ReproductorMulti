@@ -1,61 +1,87 @@
-# Reproductor Multi-Audio
+﻿# Reproductor Multi-Audio
 
-Aplicación web para reproducción simultánea de múltiples archivos de audio. Ideal para producciones en vivo, teatro, podcasts y eventos.
+Aplicacion web para reproduccion simultanea de multiples pistas de audio.
+Pensada para uso en vivo: teatro, podcast, eventos, streaming y operacion tecnica.
 
-## Características
+## Objetivo
 
-### Control de Audio
-- Reproducción simultánea de múltiples audios
-- Control individual por audio (reproducción, pausa, volumen, loop, mute)
-- Controles globales para todos los audios
-- Control de volumen hasta 200%
-- Barra de progreso interactiva con navegación por clic
-- Atajo de teclado (Espacio para pausar/reanudar todo)
+Controlar muchas pistas rapido, con estados claros, grupos, filtros y atajos de teclado.
 
-### Organización
-- Sistema de grupos (opcional) con colores aleatorios para organizar audios (por actos, escenas, etc.). Para audios que no estan en un grupo, estos quedan la seccion "Sin agrupar"
-- Controles por grupo (reproducción, pausa, stop, mute grupal)
-- Grupos colapsables para mejor visualización
+## Caracteristicas principales
 
-### Búsqueda y Filtros
-- Búsqueda instantánea de audios por nombre
-- Sistema de filtros múltiples:
-  - Todos los audios
+### Control de audio
+- Reproduccion simultanea de multiples audios.
+- Control individual por pista: reproducir, pausar, eliminar, mute, loop y volumen.
+- Controles globales: reproducir todo, pausar todo, detener todo, reset de volumenes.
+- Volumen por pista hasta 200%.
+- Volumen maestro global.
+- Barra de progreso con seek por clic.
+
+### Organizacion
+- Grupos opcionales para ordenar pistas por acto, escena o categoria.
+- Seccion automatica `Sin agrupar`.
+- Controles por grupo: play, pause, stop, mute y modo playlist.
+- Grupos colapsables.
+
+### Busqueda y filtros
+- Busqueda por nombre en tiempo real (con debounce para mejor rendimiento).
+- Filtros por estado:
+  - Todos
   - Reproduciendo
   - Pausados
   - Detenidos
   - En loop
 
+### Operacion rapida en vivo
+- Barra superior fija de acciones rapidas:
+  - Reproducir/Pausar
+  - Detener
+  - Silenciar todo
+  - Solo reproduciendo
+  - Modo compacto
+- Paleta de comandos con `Ctrl+K`.
+- Navegacion por teclado entre pistas visibles:
+  - `ArrowUp` / `ArrowDown`: mover foco
+  - `Enter`: reproducir/pausar pista enfocada
+  - `M`: mute pista enfocada
+  - `L`: loop pista enfocada
+  - `Space`: reproducir/pausar todo
+
 ### Monitoreo
-- Historial en tiempo real de audios reproduciéndose
-- Indicador visual de audios que estan en estado de reproducción pero que se encuentran muteados en el historial
-- Contador de audios en reproducción
-- Contador de audios por grupo
-- Navegación rápida a audios desde el historial (scroll automático con highlight si se selecciona un audio del historial)
+- Panel lateral con audios reproduciendose.
+- Contador de pistas activas.
+- Click en historial para saltar al audio correspondiente.
 
-### Respaldo y Restauración de Configuración
-- Exportación de configuración completa en formato JSON
-- Importación de configuración guardada
-- Guarda: grupos, volúmenes, estados de mute y loop
-- Identificación de audios por nombre y formato
-- Indicador de configuración cargada con detalles
-- Restablecimiento de fábrica para limpiar toda la configuración
-
-## Uso del Sistema de Respaldo
-
-1. **Cargar audios:** Primero selecciona y carga tus archivos de audio
-2. **Configurar:** Crea grupos, ajusta volúmenes, configura mute/loop según necesites
-3. **Exportar:** Guarda tu configuración en un archivo JSON
-4. **Importar:** En futuras sesiones, carga primero los mismos archivos de audio y luego importa la configuración
-
-**Nota:** El sistema identifica audios por nombre y formato. Si renombras o cambias el formato de un archivo, no se le aplicará la configuración guardada.
+### Respaldo y restauracion
+- Exportar configuracion a JSON.
+- Importar configuracion guardada.
+- Incluye grupos y ajustes por pista (volumen, mute, loop, grupo asignado).
+- Estado visual de respaldo cargado.
+- Restablecimiento de fabrica.
 
 ## Requisitos
 
-- Navegador web moderno con soporte para Web Audio API
-- Archivos de audio en formato compatible (MP3, WAV, OGG, AAC, etc.)
-- Máximo 50MB por archivo de audio
+- Navegador moderno con soporte Web Audio API.
+- Formatos compatibles del navegador (MP3, WAV, OGG, AAC, etc).
+- Tamano maximo por archivo: **100MB**.
+
+## Flujo de trabajo típico
+
+1. Carga tus archivos desde `Agregar Archivos de Audio`.
+2. (Opcional) Crea grupos y asigna pistas.
+3. Ajusta volumen, loop y mute segun tu sesion.
+4. Usa la barra rapida o atajos de teclado para operar durante el vivo.
+5. Exporta respaldo cuando termines la configuracion.
+
+## Flujo recomendado para respaldo
+
+1. Cargar audios.
+2. Configurar grupos y estados.
+3. Exportar respaldo.
+4. En una sesion futura: cargar primero los mismos audios y luego importar JSON.
+
+Nota: el sistema identifica audios por nombre y extension. Si cambias nombre o formato, esa pista no matchea contra el respaldo anterior.
 
 ## Licencia
 
-Proyecto bajo la licencia MIT
+MIT

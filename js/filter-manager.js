@@ -5,9 +5,14 @@ export class FilterManager {
     }
 
     handleFilterClick(e) {
-        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-        e.currentTarget.classList.add('active');
-        this.currentFilter = e.currentTarget.dataset.filter;
+        this.setFilter(e.currentTarget.dataset.filter);
+    }
+
+    setFilter(filter) {
+        this.currentFilter = filter;
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.filter === filter);
+        });
         this.applyFilters();
     }
 

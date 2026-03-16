@@ -208,6 +208,28 @@ body {
     border: none;
 }
 
+.quick-actions-bar {
+    position: sticky;
+    top: 10px;
+    z-index: 990;
+    border: none;
+    border-radius: 12px;
+}
+
+.quick-actions-content {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.6rem 0.8rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    background: white;
+    border-radius: 12px;
+}
+
+.quick-actions-content .btn {
+    white-space: nowrap;
+}
+
 .controls-panel .card-body {
     padding: 2rem;
 }
@@ -546,6 +568,12 @@ body {
 
 .audio-item.highlight {
     animation: highlightPulse 1.5s ease;
+}
+
+.audio-item.keyboard-focused {
+    outline: 3px solid var(--primary-color);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.25);
 }
 
 @keyframes highlightPulse {
@@ -1028,6 +1056,126 @@ input[type="file"]:hover {
     font-size: 0.9rem;
 }
 
+.command-palette-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+    z-index: 2000;
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 8vh;
+}
+
+.command-palette-backdrop.visible {
+    display: flex;
+}
+
+.command-palette-panel {
+    width: min(700px, 92vw);
+    background: white;
+    border-radius: 14px;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
+    overflow: hidden;
+}
+
+.command-palette-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.8rem 0.9rem;
+    border-bottom: 1px solid #e5e7eb;
+    background: #f8fafc;
+}
+
+.command-palette-header i {
+    color: #64748b;
+    font-size: 1rem;
+}
+
+.command-palette-header input {
+    border: none;
+    outline: none;
+    width: 100%;
+    background: transparent;
+    color: #0f172a;
+    font-weight: 600;
+}
+
+.command-hint {
+    font-size: 0.75rem;
+    background: #e2e8f0;
+    border-radius: 6px;
+    color: #334155;
+    padding: 0.15rem 0.45rem;
+}
+
+.command-palette-results {
+    max-height: 50vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.command-item {
+    border: none;
+    background: white;
+    text-align: left;
+    padding: 0.7rem 0.9rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1f2937;
+    cursor: pointer;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.command-item:hover,
+.command-item.active {
+    background: #e0f2fe;
+    color: #0c4a6e;
+}
+
+.command-item-empty {
+    padding: 1rem;
+    color: #64748b;
+    text-align: center;
+}
+
+.compact-mode .controls-panel .alert {
+    display: none;
+}
+
+.compact-mode .controls-panel .card-body {
+    padding: 1.2rem;
+}
+
+.compact-mode .audio-item .card-body {
+    padding: 0.45rem 0.6rem;
+}
+
+.compact-mode .audio-controls {
+    gap: 0.2rem;
+    margin-bottom: 0.35rem;
+}
+
+.compact-mode .btn-small {
+    padding: 0.2rem 0.45rem;
+    font-size: 0.72rem;
+}
+
+.compact-mode .group-header {
+    padding: 0.45rem 0.7rem;
+}
+
+.compact-mode .group-content {
+    padding: 0.5rem;
+}
+
+.compact-mode .volume-control,
+.compact-mode .loop-toggle {
+    padding: 0.25rem 0.4rem;
+}
+
 @media (max-width: 768px) {
     .controls-panel .card-body {
         padding: 1rem;
@@ -1075,5 +1223,13 @@ input[type="file"]:hover {
     .github-footer {
         bottom: 10px;
         right: 10px;
+    }
+
+    .quick-actions-content {
+        justify-content: flex-start;
+    }
+
+    .command-palette-backdrop {
+        padding-top: 4vh;
     }
 }

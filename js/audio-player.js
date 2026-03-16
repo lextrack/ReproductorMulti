@@ -1,6 +1,9 @@
 import { Utils } from './utils.js';
 import { MAX_FILE_SIZE, DEFAULT_VOLUME } from './constants.js';
 
+const FADE_DURATION_SECONDS = 0.3;
+const FADE_DURATION_MS = Math.round(FADE_DURATION_SECONDS * 1000);
+
 export class AudioPlayer {
     constructor(audioManager) {
         this.audioManager = audioManager;
@@ -47,7 +50,7 @@ export class AudioPlayer {
                 item.gainNode.gain.cancelScheduledValues(currentTime);
 
                 item.gainNode.gain.setValueAtTime(0.01, currentTime);
-                item.gainNode.gain.linearRampToValueAtTime(targetVolume, currentTime + 0.3);
+                item.gainNode.gain.linearRampToValueAtTime(targetVolume, currentTime + FADE_DURATION_SECONDS);
                 
                 item.audio.play().catch(e => {
                     console.error('Error al reproducir:', e);
@@ -66,12 +69,12 @@ export class AudioPlayer {
             item.gainNode.gain.cancelScheduledValues(currentTime);
             
             item.gainNode.gain.setValueAtTime(currentVolume, currentTime);
-            item.gainNode.gain.linearRampToValueAtTime(0.01, currentTime + 0.3);
+            item.gainNode.gain.linearRampToValueAtTime(0.01, currentTime + FADE_DURATION_SECONDS);
             
             setTimeout(() => {
                 item.audio.pause();
                 
-            }, 100);
+            }, FADE_DURATION_MS);
         }
     }
 
@@ -89,7 +92,7 @@ export class AudioPlayer {
                     item.gainNode.gain.cancelScheduledValues(currentTime);
                     
                     item.gainNode.gain.setValueAtTime(0.01, currentTime);
-                    item.gainNode.gain.linearRampToValueAtTime(targetVolume, currentTime + 0.3);
+                    item.gainNode.gain.linearRampToValueAtTime(targetVolume, currentTime + FADE_DURATION_SECONDS);
                     
                     item.audio.play().catch(e => {
                         console.error('Error al reproducir:', e);
@@ -114,7 +117,7 @@ export class AudioPlayer {
 
                 item.gainNode.gain.cancelScheduledValues(currentTime);
                 item.gainNode.gain.setValueAtTime(currentVolume, currentTime);
-                item.gainNode.gain.linearRampToValueAtTime(0.01, currentTime + 0.3);
+                item.gainNode.gain.linearRampToValueAtTime(0.01, currentTime + FADE_DURATION_SECONDS);
                 
                 pausedCount++;
             }
@@ -126,7 +129,7 @@ export class AudioPlayer {
                     item.audio.pause();
                 }
             });
-        }, 100);
+        }, FADE_DURATION_MS);
         
         if (pausedCount > 0) {
             Utils.showAlert(`${pausedCount} audio(s) pausado(s)`, 'warning');
@@ -143,7 +146,7 @@ export class AudioPlayer {
                 
                 item.gainNode.gain.cancelScheduledValues(currentTime);
                 item.gainNode.gain.setValueAtTime(currentVolume, currentTime);
-                item.gainNode.gain.linearRampToValueAtTime(0.01, currentTime + 0.3);
+                item.gainNode.gain.linearRampToValueAtTime(0.01, currentTime + FADE_DURATION_SECONDS);
                 
                 stoppedCount++;
             }
@@ -157,7 +160,7 @@ export class AudioPlayer {
                     item.audio.currentTime = 0;
                 }
             });
-        }, 100);
+        }, FADE_DURATION_MS);
         
         if (stoppedCount > 0) {
             Utils.showAlert(`${stoppedCount} audio(s) detenido(s)`, 'danger');
@@ -281,6 +284,22 @@ export class AudioPlayer {
             const groupId = item.groupId;
             
             item.audio.pause();
+            if (item._playlistEndedHandler) {
+                item.audio.removeEventListener('ended', item._playlistEndedHandler);
+                delete item._playlistEndedHandler;
+            }
+            if (item._timeUpdateRafId) {
+                cancelAnimationFrame(item._timeUpdateRafId);
+                item._timeUpdateRafId = null;
+            }
+            try {
+                item.source?.disconnect();
+                item.gainNode?.disconnect();
+            } catch (e) {
+                console.warn('No se pudieron desconectar nodos de audio:', e);
+            }
+            item.audio.removeAttribute('src');
+            item.audio.load();
             URL.revokeObjectURL(item.url);
             this.audioManager.audioElements.splice(index, 1);
             
@@ -288,6 +307,7 @@ export class AudioPlayer {
             if (element) {
                 element.remove();
             }
+            this.audioManager.onAudioRemoved(id);
             
             if (groupId !== null && groupId !== undefined) {
                 this.audioManager.groupManager.updateGroupCount(groupId);

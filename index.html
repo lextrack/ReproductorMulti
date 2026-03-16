@@ -16,6 +16,29 @@
     <div class="container-fluid">
         <div class="row">
             <div class="col-lg-9 col-12 py-4">
+                <div class="quick-actions-bar card shadow-sm mb-3">
+                    <div class="quick-actions-content">
+                        <button class="btn btn-success btn-sm" id="quickPlayPauseBtn">
+                            <i class="bi bi-play-circle-fill"></i> Reproducir/Pausar
+                        </button>
+                        <button class="btn btn-danger btn-sm" id="quickStopBtn">
+                            <i class="bi bi-stop-circle-fill"></i> Detener
+                        </button>
+                        <button class="btn btn-secondary btn-sm" id="quickMuteAllBtn">
+                            <i class="bi bi-volume-mute-fill"></i> Silenciar todo
+                        </button>
+                        <button class="btn btn-info btn-sm" id="quickFilterPlayingBtn">
+                            <i class="bi bi-funnel-fill"></i> Solo reproduciendo
+                        </button>
+                        <button class="btn btn-purple btn-sm" id="quickCompactBtn">
+                            <i class="bi bi-layout-text-window-reverse"></i> Modo compacto
+                        </button>
+                        <button class="btn btn-dark btn-sm" id="quickCommandPaletteBtn">
+                            <i class="bi bi-command"></i> Ctrl+K
+                        </button>
+                    </div>
+                </div>
+
                 <div class="controls-panel card shadow-sm mb-4">
                     <div class="card-body">
                         <div class="add-audio-section mb-3">
@@ -207,6 +230,17 @@
             </a>
         </div>
     </footer>
+
+    <div class="command-palette-backdrop" id="commandPaletteBackdrop">
+        <div class="command-palette-panel">
+            <div class="command-palette-header">
+                <i class="bi bi-search"></i>
+                <input type="text" id="commandPaletteInput" placeholder="Escribe un comando o nombre de audio...">
+                <span class="command-hint">Esc</span>
+            </div>
+            <div class="command-palette-results" id="commandPaletteResults"></div>
+        </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz4YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
     <script type="module" src="js/main.js"></script>

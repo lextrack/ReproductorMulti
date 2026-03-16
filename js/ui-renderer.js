@@ -106,9 +106,14 @@ export class UIRenderer {
         
         container.appendChild(div);
         this.attachItemEventListeners(div, item.id);
+
+        if (this.audioManager.focusedAudioId === item.id) {
+            div.classList.add('keyboard-focused');
+        }
     }
 
     attachItemEventListeners(div, id) {
+        div.addEventListener('click', () => this.audioManager.setFocusedAudio(id));
         div.querySelector('.btn-play-single').addEventListener('click', () => this.audioManager.audioPlayer.playSingle(id));
         div.querySelector('.btn-pause-single').addEventListener('click', () => this.audioManager.audioPlayer.pauseSingle(id));
         div.querySelector('.btn-remove').addEventListener('click', () => this.audioManager.audioPlayer.removeAudio(id));
