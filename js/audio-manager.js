@@ -58,7 +58,7 @@ export class AudioManager {
         if (masterSlider && masterDisplay) {
             masterSlider.addEventListener('input', (e) => {
                 const value = parseFloat(e.target.value);
-                this.masterGainNode.gain.value = value / 100;
+                if (this.masterGainNode) this.masterGainNode.gain.value = value / 100;
                 masterDisplay.textContent = `${value}%`;
             });
         }
@@ -216,6 +216,10 @@ export class AudioManager {
     }
 
     addAudio(file, groupId = null) {
+        if (!this.audioContext || !this.masterGainNode) {
+            Utils.showAlert('Tu navegador no permite procesar audio con esta aplicación', 'danger');
+            return;
+        }
         const id = this.audioId++;
         const url = URL.createObjectURL(file);
         const audio = new Audio(url);
@@ -240,7 +244,7 @@ export class AudioManager {
                 isPlaying: false,
                 groupId: groupId,
                 isMuted: false,
-                originalVolume: DEFAULT_VOLUME
+                volume: DEFAULT_VOLUME
             };
 
             this.setupAudioEventListeners(audioItem);
@@ -257,6 +261,7 @@ export class AudioManager {
                 this.updateUngroupedCount();
             }
         } catch (e) {
+            URL.revokeObjectURL(url);
             console.error('Error al crear audio:', e);
             Utils.showAlert('Error al cargar el audio: ' + file.name, 'danger');
         }
@@ -264,7 +269,7 @@ export class AudioManager {
 
     setupAudioEventListeners(item) {
         item.audio.addEventListener('play', () => {
-            this.audioContext.resume();
+            this.audioContext?.resume().catch(() => {});
             item.isPlaying = true;
             this.updatePlayingState(item.id, true);
             this.uiRenderer.updatePlayingCounter();
@@ -319,7 +324,12 @@ export class AudioManager {
         if (!item) return;
 
         const oldGroupId = item.groupId;
-        item.groupId = newGroupId === '' ? null : parseInt(newGroupId);
+        const nextGroupId = newGroupId === '' ? null : Number.parseInt(newGroupId, 10);
+        if (nextGroupId !== null && !this.groupManager.getGroup(nextGroupId)) return;
+
+        this.groupManager.stopPlaylist(oldGroupId);
+        if (nextGroupId !== null && nextGroupId !== oldGroupId) this.groupManager.stopPlaylist(nextGroupId);
+        item.groupId = nextGroupId;
 
         const audioElement = document.getElementById(`audio-item-${audioId}`);
         if (audioElement) {

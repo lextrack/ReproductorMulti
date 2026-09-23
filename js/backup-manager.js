@@ -10,18 +10,17 @@ export class BackupManager {
 
     exportBackup() {
         const backup = {
-            version: '1.0',
+            version: '1.1',
             timestamp: new Date().toISOString(),
             groups: this.audioManager.groupManager.getAllGroups().map(g => ({
                 name: g.name,
                 color: g.color
             })),
             audioSettings: this.audioManager.audioElements.map(item => {
-                const slider = document.querySelector(`.volume-slider[data-id="${item.id}"]`);
-                const volumeValue = slider ? parseInt(slider.value) : DEFAULT_VOLUME;
+                const volumeValue = item.volume ?? DEFAULT_VOLUME;
                 
                 return {
-                    key: this.getAudioKey(item.file.name),
+                    key: this.getAudioKey(item.file),
                     name: item.file.name,
                     groupName: item.groupId !== null && item.groupId !== undefined ? 
                         this.audioManager.groupManager.getGroup(item.groupId)?.name : null,
@@ -48,9 +47,11 @@ export class BackupManager {
         Utils.showAlert('Respaldo exportado correctamente', 'success');
     }
 
-    getAudioKey(name) {
+    getAudioKey(file) {
+        const name = typeof file === 'string' ? file : file.name;
         const extension = name.split('.').pop().toLowerCase();
-        return `${name}_${extension}`;
+        if (typeof file === 'string') return `${name}_${extension}`;
+        return `${name}_${extension}_${file.size}_${file.lastModified}`;
     }
 
     importBackup(e) {
@@ -68,14 +69,26 @@ export class BackupManager {
             try {
                 const backup = JSON.parse(event.target.result);
                 
-                if (!backup.version || !backup.groups || !backup.audioSettings) {
+                if (!backup.version || !Array.isArray(backup.groups) || !Array.isArray(backup.audioSettings) ||
+                    !backup.groups.every(group => group && typeof group.name === 'string' && /^hsl\(\d{1,3},\s*\d{1,3}%,\s*\d{1,3}%\)$/.test(group.color)) ||
+                    !backup.audioSettings.every(setting => setting && typeof setting.key === 'string' &&
+                        typeof setting.name === 'string' && Number.isFinite(Number(setting.volume)) &&
+                        typeof setting.isMuted === 'boolean' && typeof setting.isLoop === 'boolean')) {
                     throw new Error('Formato de respaldo inválido');
                 }
 
+                const groupNames = backup.groups.map(group => group.name.trim().toLocaleLowerCase());
+                if (groupNames.some((name, index) => !name || groupNames.indexOf(name) !== index)) {
+                    throw new Error('El respaldo contiene grupos vacíos o con nombres duplicados');
+                }
+
                 const currentAudioKeys = this.audioManager.audioElements.map(item => 
-                    this.getAudioKey(item.file.name)
+                    this.getAudioKey(item.file)
                 );
                 const backupAudioKeys = backup.audioSettings.map(s => s.key);
+                if (backupAudioKeys.some((key, index) => backupAudioKeys.indexOf(key) !== index)) {
+                    throw new Error('El respaldo contiene configuraciones de audio duplicadas');
+                }
                 const missingAudios = backupAudioKeys.filter(key => !currentAudioKeys.includes(key));
                 
                 if (missingAudios.length > 0) {
@@ -96,6 +109,7 @@ export class BackupManager {
                     }
                 }
 
+                this.audioManager.groupManager.stopAllPlaylists();
                 while (this.audioManager.groupManager.groups.length > 0) {
                     const group = this.audioManager.groupManager.groups[0];
                     const tagElement = document.querySelector(`[data-group-id="${group.id}"]`);
@@ -134,7 +148,7 @@ export class BackupManager {
                 });
                 
                 this.audioManager.audioElements.forEach(item => {
-                    const key = this.getAudioKey(item.file.name);
+                    const key = this.getAudioKey(item.file);
                     const settings = backup.audioSettings.find(s => s.key === key);
                     
                     if (settings) {
@@ -149,37 +163,33 @@ export class BackupManager {
                     } else {
                         item.groupId = null;
                     }
+
+                    item.volume = settings ? Math.max(0, Math.min(200, Number(settings.volume))) : DEFAULT_VOLUME;
+                    item.isMuted = settings ? settings.isMuted : false;
+                    item.audio.loop = settings ? settings.isLoop : false;
                     
                     this.audioManager.renderAudioItem(item);
                 });
 
-                setTimeout(() => {
+                {
                     this.audioManager.audioElements.forEach(item => {
-                        const key = this.getAudioKey(item.file.name);
+                        const key = this.getAudioKey(item.file);
                         const settings = backup.audioSettings.find(s => s.key === key);
                         
                         if (settings) {
-                            console.log(`[IMPORT] Aplicando a ${item.file.name}:`, {
-                                volume: settings.volume,
-                                isMuted: settings.isMuted,
-                                isLoop: settings.isLoop,
-                                groupName: settings.groupName
-                            });
-                            
                             const slider = document.querySelector(`.volume-slider[data-id="${item.id}"]`);
                             if (slider) {
-                                slider.value = settings.volume;
-                                item.gainNode.gain.value = settings.volume / 100;
+                                slider.value = item.volume;
+                                item.gainNode.gain.value = item.volume / 100;
                                 const display = document.getElementById(`vol-display-${item.id}`);
                                 if (display) {
-                                    display.textContent = `${settings.volume}%`;
-                                    if (settings.volume > 100) {
+                                    display.textContent = `${item.volume}%`;
+                                    if (item.volume > 100) {
                                         display.classList.add('boosted');
                                     } else {
                                         display.classList.remove('boosted');
                                     }
                                 }
-                                console.log(`[IMPORT] Volumen aplicado: slider=${slider.value}, gainNode=${item.gainNode.gain.value}`);
                             }
 
                             const muteBtn = document.querySelector(`.btn-mute[data-id="${item.id}"]`);
@@ -193,7 +203,6 @@ export class BackupManager {
                                     muteBtn.innerHTML = '<i class="bi bi-volume-mute"></i>';
                                 }
                             }
-                            console.log(`[IMPORT] Mute aplicado: ${item.isMuted}`);
 
                             const loopCheckbox = document.getElementById(`loop-${item.id}`);
                             const loopContainer = document.getElementById(`loop-container-${item.id}`);
@@ -209,7 +218,6 @@ export class BackupManager {
                                     loopContainer.style.borderLeft = 'none';
                                 }
                             }
-                            console.log(`[IMPORT] Loop aplicado: checkbox=${loopCheckbox?.checked}, audio.loop=${item.audio.loop}`);
                         } else {
                             const slider = document.querySelector(`.volume-slider[data-id="${item.id}"]`);
                             if (slider) {
@@ -248,7 +256,7 @@ export class BackupManager {
                     this.audioManager.groupManager.updateAllGroupSelectors();
                     this.audioManager.updateUngroupedCount();
                     this.audioManager.applyFilters();
-                }, 150);
+                }
 
                 this.backupLoaded = true;
                 this.backupInfo = {
@@ -280,6 +288,7 @@ export class BackupManager {
             return;
         }
 
+        this.audioManager.groupManager.stopAllPlaylists();
         while (this.audioManager.groupManager.groups.length > 0) {
             const group = this.audioManager.groupManager.groups[0];
             const tagElement = document.querySelector(`[data-group-id="${group.id}"]`);
@@ -295,6 +304,9 @@ export class BackupManager {
 
         this.audioManager.audioElements.forEach(item => {
             item.groupId = null;
+            item.volume = DEFAULT_VOLUME;
+            item.isMuted = false;
+            item.audio.loop = false;
 
             const slider = document.querySelector(`.volume-slider[data-id="${item.id}"]`);
             if (slider) {
@@ -307,31 +319,18 @@ export class BackupManager {
                 }
             }
 
-            if (item.isMuted) {
-                item.isMuted = false;
-                const btn = document.querySelector(`.btn-mute[data-id="${item.id}"]`);
-                if (btn) {
-                    btn.classList.remove('active');
-                    btn.innerHTML = '<i class="bi bi-volume-mute"></i>';
-                }
-            }
-
             const loopCheckbox = document.getElementById(`loop-${item.id}`);
             const loopContainer = document.getElementById(`loop-container-${item.id}`);
-            if (loopCheckbox && loopCheckbox.checked) {
+            if (loopCheckbox) {
                 loopCheckbox.checked = false;
-                item.audio.loop = false;
                 if (loopContainer) {
                     loopContainer.style.background = '#bbb7b773';
                     loopContainer.style.borderLeft = 'none';
                 }
             }
 
-            const audioElement = document.getElementById(`audio-item-${item.id}`);
-            if (audioElement) {
-                audioElement.remove();
-                this.audioManager.renderAudioItem(item);
-            }
+            document.getElementById(`audio-item-${item.id}`)?.remove();
+            this.audioManager.renderAudioItem(item);
         });
 
         this.audioManager.applyMute();

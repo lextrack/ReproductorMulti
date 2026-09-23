@@ -12,6 +12,10 @@ export class GroupManager {
             Utils.showAlert('Ingresa un nombre para el grupo', 'warning');
             return null;
         }
+        if (this.groups.some(group => group.name.localeCompare(name, undefined, { sensitivity: 'accent' }) === 0)) {
+            Utils.showAlert('Ya existe un grupo con ese nombre', 'warning');
+            return null;
+        }
 
         const group = {
             id: this.groupId++,
@@ -51,6 +55,8 @@ export class GroupManager {
                 }
             });
         }
+
+        this.stopPlaylist(groupId);
 
         this.groups = this.groups.filter(g => g.id !== groupId);
         
@@ -241,6 +247,7 @@ export class GroupManager {
         
         switch(action) {
             case 'play':
+                this.stopPlaylist(groupId);
                 audios.forEach(audio => this.audioManager.audioPlayer.playSingle(audio.id));
                 break;
             case 'pause':
@@ -249,8 +256,7 @@ export class GroupManager {
             case 'stop':
                 this.stopPlaylist(groupId);
                 audios.forEach(audio => {
-                    this.audioManager.audioPlayer.pauseSingle(audio.id);
-                    audio.audio.currentTime = 0;
+                    this.audioManager.audioPlayer.stopSingle(audio.id);
                 });
                 break;
             case 'mute':
@@ -285,6 +291,10 @@ export class GroupManager {
 
             group.playlistMode = mode;
             group.currentPlayingIndex = -1;
+            if (group._playlistTransitionTimer) {
+                clearTimeout(group._playlistTransitionTimer);
+                group._playlistTransitionTimer = null;
+            }
 
             playlistBtn?.classList.remove('active');
             loopBtn?.classList.remove('active');
@@ -336,8 +346,8 @@ export class GroupManager {
             }
         });
 
-        audios.forEach((audio, index) => {
-            audio._playlistEndedHandler = () => this.handlePlaylistAudioEnded(groupId, index);
+        audios.forEach(audio => {
+            audio._playlistEndedHandler = () => this.handlePlaylistAudioEnded(groupId, audio.id);
             audio.audio.addEventListener('ended', audio._playlistEndedHandler);
         });
 
@@ -350,11 +360,13 @@ export class GroupManager {
         this.audioManager.audioPlayer.playSingle(audios[0].id);
     }
 
-    handlePlaylistAudioEnded(groupId, audioIndex) {
+    handlePlaylistAudioEnded(groupId, audioId) {
         const group = this.groups.find(g => g.id === groupId);
         if (!group || group.playlistMode === 'none') return;
 
         const audios = this.audioManager.audioElements.filter(a => a.groupId === groupId);
+        const audioIndex = audios.findIndex(audio => audio.id === audioId);
+        if (audioIndex === -1) return;
         const currentAudio = audios[audioIndex];
         
         if (currentAudio && currentAudio.audio.loop) {
@@ -365,7 +377,9 @@ export class GroupManager {
 
         if (nextIndex < audios.length) {
             group.currentPlayingIndex = nextIndex;
-            setTimeout(() => {
+            group._playlistTransitionTimer = setTimeout(() => {
+                group._playlistTransitionTimer = null;
+                if (group.playlistMode === 'none') return;
                 if (audios[nextIndex].audio.loop) {
                     audios[nextIndex].audio.loop = false;
                 }
@@ -374,7 +388,9 @@ export class GroupManager {
         } else {
             if (group.playlistMode === 'loop') {
                 group.currentPlayingIndex = 0;
-                setTimeout(() => {
+                group._playlistTransitionTimer = setTimeout(() => {
+                    group._playlistTransitionTimer = null;
+                    if (group.playlistMode === 'none') return;
                     if (audios[0].audio.loop) {
                         audios[0].audio.loop = false;
                     }
@@ -393,6 +409,10 @@ export class GroupManager {
 
         group.playlistMode = 'none';
         group.currentPlayingIndex = -1;
+        if (group._playlistTransitionTimer) {
+            clearTimeout(group._playlistTransitionTimer);
+            group._playlistTransitionTimer = null;
+        }
 
         const audios = this.audioManager.audioElements.filter(a => a.groupId === groupId);
         audios.forEach(audio => {
@@ -426,6 +446,10 @@ export class GroupManager {
         if (indicator) {
             indicator.style.display = 'none';
         }
+    }
+
+    stopAllPlaylists() {
+        [...this.groups].forEach(group => this.stopPlaylist(group.id));
     }
 
     toggleGroupMute(groupId) {

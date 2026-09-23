@@ -61,14 +61,14 @@ export class UIRenderer {
                     <button class="btn btn-danger btn-small btn-remove" data-id="${item.id}">
                         <i class="bi bi-trash-fill"></i>
                     </button>
-                    <button class="btn btn-secondary btn-small btn-mute" data-id="${item.id}" title="Mute">
-                        <i class="bi bi-volume-mute"></i>
+                    <button class="btn btn-secondary btn-small btn-mute ${item.isMuted ? 'active' : ''}" data-id="${item.id}" title="Mute">
+                        <i class="bi bi-volume-mute${item.isMuted ? '-fill' : ''}"></i>
                     </button>
                     <button class="btn btn-purple btn-small btn-reset-volume" data-id="${item.id}">
                         <span>Reset volumen</span>
                     </button>
                     <div class="loop-toggle" id="loop-container-${item.id}">
-                        <input type="checkbox" class="form-check-input" id="loop-${item.id}" data-id="${item.id}">
+                        <input type="checkbox" class="form-check-input" id="loop-${item.id}" data-id="${item.id}" ${item.audio.loop ? 'checked' : ''}>
                         <label for="loop-${item.id}">
                             <span>Loop</span>
                         </label>
@@ -92,9 +92,9 @@ export class UIRenderer {
                     <span class="volume-label">
                         <i class="bi bi-volume-up-fill"></i>
                     </span>
-                    <input type="range" min="0" max="${MAX_VOLUME}" value="${DEFAULT_VOLUME}" 
+                    <input type="range" min="0" max="${MAX_VOLUME}" value="${item.volume ?? DEFAULT_VOLUME}"
                            data-id="${item.id}" class="form-range volume-slider">
-                    <span class="volume-label volume-display" id="vol-display-${item.id}">${DEFAULT_VOLUME}%</span>
+                    <span class="volume-label volume-display ${item.volume > 100 ? 'boosted' : ''}" id="vol-display-${item.id}">${item.volume ?? DEFAULT_VOLUME}%</span>
                 </div>
                 
                 <div class="error-message" id="error-${item.id}" style="display: none;">
@@ -106,6 +106,13 @@ export class UIRenderer {
         
         container.appendChild(div);
         this.attachItemEventListeners(div, item.id);
+        const loopContainer = document.getElementById(`loop-container-${item.id}`);
+        if (item.audio.loop && loopContainer) {
+            loopContainer.style.background = 'rgba(139, 92, 246, 0.1)';
+            loopContainer.style.borderLeft = '3px solid var(--purple-color)';
+        }
+        this.updatePlayingState(item.id, item.isPlaying);
+        this.updateDuration(item.id);
 
         if (this.audioManager.focusedAudioId === item.id) {
             div.classList.add('keyboard-focused');
@@ -175,7 +182,7 @@ export class UIRenderer {
         const audioData = this.audioManager.audioElements.find(el => el.id === id);
         
         if (item && statusBadge) {
-            item.classList.remove('playing', 'paused');
+            item.classList.remove('playing', 'paused', 'looping');
             
             if (loopIndicator && audioData) {
                 if (audioData.audio.loop) {

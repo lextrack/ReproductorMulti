@@ -9,6 +9,28 @@ export class AudioPlayer {
         this.audioManager = audioManager;
     }
 
+    cancelPendingPause(item) {
+        if (item._fadeTimer) {
+            clearTimeout(item._fadeTimer);
+            item._fadeTimer = null;
+        }
+    }
+
+    fadeAndPause(item, reset = false) {
+        if (item.audio.paused && !reset) return false;
+        this.cancelPendingPause(item);
+        const currentTime = this.audioManager.audioContext.currentTime;
+        item.gainNode.gain.cancelScheduledValues(currentTime);
+        item.gainNode.gain.setValueAtTime(item.gainNode.gain.value, currentTime);
+        item.gainNode.gain.linearRampToValueAtTime(0.01, currentTime + FADE_DURATION_SECONDS);
+        item._fadeTimer = setTimeout(() => {
+            item._fadeTimer = null;
+            item.audio.pause();
+            if (reset) item.audio.currentTime = 0;
+        }, FADE_DURATION_MS);
+        return true;
+    }
+
     validateFile(file) {
         if (!file.type.startsWith('audio/')) {
             Utils.showAlert(`"${file.name}" no es un archivo de audio válido`, 'warning');
@@ -39,10 +61,12 @@ export class AudioPlayer {
 
     playSingle(id) {
         const item = this.audioManager.audioElements.find(el => el.id === id);
-        if (item && !item.hasError) {
+        if (item && !item.hasError && this.audioManager.audioContext) {
+            this.cancelPendingPause(item);
             this.audioManager.audioContext.resume().then(() => {
+                this.cancelPendingPause(item);
                 const slider = document.querySelector(`.volume-slider[data-id="${id}"]`);
-                const sliderValue = slider ? parseFloat(slider.value) : DEFAULT_VOLUME;
+                const sliderValue = slider ? parseFloat(slider.value) : item.volume;
                 const targetVolume = item.isMuted ? 0 : (sliderValue / 100);
                 
                 const currentTime = this.audioManager.audioContext.currentTime;
@@ -56,37 +80,32 @@ export class AudioPlayer {
                     console.error('Error al reproducir:', e);
                     Utils.showAlert('Error al reproducir el audio', 'danger');
                 });
-            });
+            }).catch(() => Utils.showAlert('No se pudo activar el audio en este navegador', 'danger'));
         }
     }
 
     pauseSingle(id) {
         const item = this.audioManager.audioElements.find(el => el.id === id);
-        if (item) {
-            const currentTime = this.audioManager.audioContext.currentTime;
-            const currentVolume = item.gainNode.gain.value;
-            
-            item.gainNode.gain.cancelScheduledValues(currentTime);
-            
-            item.gainNode.gain.setValueAtTime(currentVolume, currentTime);
-            item.gainNode.gain.linearRampToValueAtTime(0.01, currentTime + FADE_DURATION_SECONDS);
-            
-            setTimeout(() => {
-                item.audio.pause();
-                
-            }, FADE_DURATION_MS);
-        }
+        if (item && this.audioManager.audioContext) this.fadeAndPause(item);
+    }
+
+    stopSingle(id) {
+        const item = this.audioManager.audioElements.find(el => el.id === id);
+        if (item && this.audioManager.audioContext) this.fadeAndPause(item, true);
     }
 
     playAll() {
+        if (!this.audioManager.audioContext) return;
+        this.audioManager.groupManager.stopAllPlaylists();
         this.audioManager.audioContext.resume().then(() => {
             let playedCount = 0;
             const currentTime = this.audioManager.audioContext.currentTime;
             
             this.audioManager.audioElements.forEach(item => {
                 if (!item.hasError) {
+                    this.cancelPendingPause(item);
                     const slider = document.querySelector(`.volume-slider[data-id="${item.id}"]`);
-                    const sliderValue = slider ? parseFloat(slider.value) : DEFAULT_VOLUME;
+                    const sliderValue = slider ? parseFloat(slider.value) : item.volume;
                     const targetVolume = item.isMuted ? 0 : (sliderValue / 100);
                     
                     item.gainNode.gain.cancelScheduledValues(currentTime);
@@ -104,32 +123,16 @@ export class AudioPlayer {
             if (playedCount > 0) {
                 Utils.showAlert(`Reproduciendo ${playedCount} audio(s)`, 'success');
             }
-        });
+        }).catch(() => Utils.showAlert('No se pudo activar el audio en este navegador', 'danger'));
     }
 
     pauseAll() {
         let pausedCount = 0;
-        const currentTime = this.audioManager.audioContext.currentTime;
-        
         this.audioManager.audioElements.forEach(item => {
             if (item.isPlaying) {
-                const currentVolume = item.gainNode.gain.value;
-
-                item.gainNode.gain.cancelScheduledValues(currentTime);
-                item.gainNode.gain.setValueAtTime(currentVolume, currentTime);
-                item.gainNode.gain.linearRampToValueAtTime(0.01, currentTime + FADE_DURATION_SECONDS);
-                
-                pausedCount++;
+                if (this.fadeAndPause(item)) pausedCount++;
             }
         });
-        
-        setTimeout(() => {
-            this.audioManager.audioElements.forEach(item => {
-                if (item.isPlaying) {
-                    item.audio.pause();
-                }
-            });
-        }, FADE_DURATION_MS);
         
         if (pausedCount > 0) {
             Utils.showAlert(`${pausedCount} audio(s) pausado(s)`, 'warning');
@@ -137,30 +140,14 @@ export class AudioPlayer {
     }
 
     stopAll() {
+        this.audioManager.groupManager.stopAllPlaylists();
         let stoppedCount = 0;
-        const currentTime = this.audioManager.audioContext.currentTime;
         
         this.audioManager.audioElements.forEach(item => {
             if (!item.audio.paused || item.audio.currentTime > 0) {
-                const currentVolume = item.gainNode.gain.value;
-                
-                item.gainNode.gain.cancelScheduledValues(currentTime);
-                item.gainNode.gain.setValueAtTime(currentVolume, currentTime);
-                item.gainNode.gain.linearRampToValueAtTime(0.01, currentTime + FADE_DURATION_SECONDS);
-                
-                stoppedCount++;
+                if (this.fadeAndPause(item, true)) stoppedCount++;
             }
         });
-        
-
-        setTimeout(() => {
-            this.audioManager.audioElements.forEach(item => {
-                if (!item.audio.paused || item.audio.currentTime > 0) {
-                    item.audio.pause();
-                    item.audio.currentTime = 0;
-                }
-            });
-        }, FADE_DURATION_MS);
         
         if (stoppedCount > 0) {
             Utils.showAlert(`${stoppedCount} audio(s) detenido(s)`, 'danger');
@@ -215,14 +202,15 @@ export class AudioPlayer {
         const item = this.audioManager.audioElements.find(el => el.id === id);
         const display = document.getElementById(`vol-display-${id}`);
         
-        if (item && display) {
-            item.gainNode.gain.value = value / 100;
-            display.textContent = `${value}%`;
+        if (item) {
+            item.volume = Number(value);
+            item.gainNode.gain.value = item.isMuted ? 0 : item.volume / 100;
+            if (display) display.textContent = `${item.volume}%`;
             
-            if (value > 100) {
-                display.classList.add('boosted');
+            if (item.volume > 100) {
+                display?.classList.add('boosted');
             } else {
-                display.classList.remove('boosted');
+                display?.classList.remove('boosted');
             }
         }
     }
@@ -271,7 +259,7 @@ export class AudioPlayer {
                 item.gainNode.gain.value = 0;
             } else {
                 const slider = document.querySelector(`.volume-slider[data-id="${item.id}"]`);
-                const volume = slider ? slider.value : DEFAULT_VOLUME;
+                const volume = slider ? slider.value : item.volume;
                 item.gainNode.gain.value = volume / 100;
             }
         });
@@ -282,6 +270,8 @@ export class AudioPlayer {
         if (index !== -1) {
             const item = this.audioManager.audioElements[index];
             const groupId = item.groupId;
+            this.audioManager.groupManager.stopPlaylist(groupId);
+            this.cancelPendingPause(item);
             
             item.audio.pause();
             if (item._playlistEndedHandler) {

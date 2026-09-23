@@ -88,11 +88,14 @@ export class Utils {
         alert.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
         
         const icon = this.getAlertIcon(type);
-        alert.innerHTML = `
-            <i class="bi ${icon} me-2"></i>
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        `;
+        const iconElement = document.createElement('i');
+        iconElement.className = `bi ${icon} me-2`;
+        const closeButton = document.createElement('button');
+        closeButton.type = 'button';
+        closeButton.className = 'btn-close';
+        closeButton.dataset.bsDismiss = 'alert';
+        closeButton.setAttribute('aria-label', 'Close');
+        alert.append(iconElement, document.createTextNode(String(message)), closeButton);
 
         alertContainer.appendChild(alert);
 
